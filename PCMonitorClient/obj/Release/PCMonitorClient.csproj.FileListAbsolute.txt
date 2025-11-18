@@ -1,0 +1,10 @@
+d:\Projects\WinServer2019_Admin\PCMonitorClient\bin\Release\PCMonitorClient.exe.config
+d:\Projects\WinServer2019_Admin\PCMonitorClient\bin\Release\PCMonitorClient.exe
+d:\Projects\WinServer2019_Admin\PCMonitorClient\bin\Release\PCMonitorClient.pdb
+d:\Projects\WinServer2019_Admin\PCMonitorClient\bin\Release\Newtonsoft.Json.dll
+d:\Projects\WinServer2019_Admin\PCMonitorClient\bin\Release\Newtonsoft.Json.xml
+d:\Projects\WinServer2019_Admin\PCMonitorClient\obj\Release\PCMonitorClient.csproj.AssemblyReference.cache
+d:\Projects\WinServer2019_Admin\PCMonitorClient\obj\Release\PCMonitorClient.csproj.CoreCompileInputs.cache
+d:\Projects\WinServer2019_Admin\PCMonitorClient\obj\Release\PCMonito.F6E9F9C4.Up2Date
+d:\Projects\WinServer2019_Admin\PCMonitorClient\obj\Release\PCMonitorClient.exe
+d:\Projects\WinServer2019_Admin\PCMonitorClient\obj\Release\PCMonitorClient.pdb

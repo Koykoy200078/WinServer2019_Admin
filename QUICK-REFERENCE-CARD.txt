@@ -1,0 +1,170 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                  🎥 SCREEN VIEWING - QUICK REFERENCE                         ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+┌─ HOW TO VIEW SCREENS ────────────────────────────────────────────────────────┐
+│                                                                              │
+│  Method 1: DOUBLE-CLICK any PC in the dashboard                             │
+│  Method 2: Click the "👁 View" button in Actions column                      │
+│                                                                              │
+│  ➜ Screen viewer window opens automatically!                                 │
+│  ➜ See live screen updates every 1-2 seconds                                 │
+│  ➜ Open multiple viewers to monitor multiple PCs                             │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ DEPLOYMENT FOR NON-DOMAIN PCs ──────────────────────────────────────────────┐
+│                                                                              │
+│  Step 1: Build everything                                                    │
+│  ──────────────────────────────────────────────────────────────────────────  │
+│    PS> cd d:\Projects\WinServer2019_Admin                                    │
+│    PS> .\Scripts\Build-All.ps1                                               │
+│                                                                              │
+│  Step 2: Deploy to standalone PCs                                            │
+│  ──────────────────────────────────────────────────────────────────────────  │
+│    PS> $pcs = @("192.168.2.101", "192.168.2.102", "192.168.2.103")          │
+│    PS> .\Scripts\Deploy-Standalone.ps1 `                                     │
+│           -ServerIP "192.168.2.45" `                                         │
+│           -TargetPCs $pcs `                                                  │
+│           -Username "Administrator"                                          │
+│                                                                              │
+│  Step 3: Start monitoring                                                    │
+│  ──────────────────────────────────────────────────────────────────────────  │
+│    1. Run: DeploymentPackage\Server\WinServer2019.exe                       │
+│    2. Click: "📊 Live Monitoring"                                            │
+│    3. Click: "Start Monitoring Server"                                       │
+│    4. Wait: 10-30 seconds for clients to connect                             │
+│    5. View: Double-click any PC name!                                        │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ FEATURES ───────────────────────────────────────────────────────────────────┐
+│                                                                              │
+│  ✅ Real-time screen capture from all PCs                                    │
+│  ✅ Compressed images (~20-50 KB per frame)                                  │
+│  ✅ Updates every 1-2 seconds                                                │
+│  ✅ Multiple viewer windows supported                                        │
+│  ✅ See active window in status bar                                          │
+│  ✅ Auto-refresh display                                                     │
+│  ✅ Silent client (invisible to users)                                       │
+│  ✅ Auto-start on PC boot                                                    │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ WHAT'S MONITORED ───────────────────────────────────────────────────────────┐
+│                                                                              │
+│  📱 Active window title                                                      │
+│  ⚙️  Active process name                                                      │
+│  💻 CPU usage percentage                                                     │
+│  🧠 Memory usage (MB)                                                        │
+│  📊 Top 10 processes                                                         │
+│  📝 Last 20 activity changes                                                 │
+│  🎥 LIVE SCREEN CAPTURE ⭐ NEW!                                              │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ FILES CREATED ──────────────────────────────────────────────────────────────┐
+│                                                                              │
+│  📦 DeploymentPackage/                                                       │
+│     ├─ Server/WinServer2019.exe          (127 KB)                           │
+│     ├─ Client/PCMonitorClient.exe        (18 KB)                            │
+│     ├─ Scripts/Deploy-Standalone.ps1     (Deployment script)                │
+│     └─ DEPLOYMENT-README.md              (Instructions)                     │
+│                                                                              │
+│  📄 Documentation/                                                           │
+│     ├─ SCREEN-VIEWING-GUIDE.md           (Complete guide)                   │
+│     └─ SCREEN-VIEWING-IMPLEMENTATION.md  (Technical details)                │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ NETWORK REQUIREMENTS ───────────────────────────────────────────────────────┐
+│                                                                              │
+│  Port:      TCP 8888                                                         │
+│  Protocol:  JSON over TCP                                                    │
+│  Bandwidth: ~50-100 KB/sec per client                                        │
+│  Total:     ~1.75-3.5 MB/sec for 35 PCs                                      │
+│                                                                              │
+│  Firewall Rules (Auto-configured):                                          │
+│  ├─ Server: Inbound TCP port 8888                                           │
+│  └─ Client: Outbound TCP to server                                          │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ TROUBLESHOOTING ────────────────────────────────────────────────────────────┐
+│                                                                              │
+│  ❌ Screen not showing?                                                      │
+│     → Check PC has green highlight (active)                                  │
+│     → Verify "Last Update" timestamp is recent                               │
+│     → Close and reopen viewer window                                         │
+│                                                                              │
+│  ❌ Clients not connecting?                                                  │
+│     → Test: Test-NetConnection -ComputerName <ServerIP> -Port 8888          │
+│     → Check: Get-ScheduledTask -TaskName "PCMonitorClient"                  │
+│     → Verify: Server IP in client config                                     │
+│                                                                              │
+│  ❌ Deployment failed?                                                       │
+│     → Check TrustedHosts: Get-Item WSMan:\localhost\Client\TrustedHosts     │
+│     → Verify credentials: Administrator account                              │
+│     → Test PSRemoting: Test-WSMan -ComputerName <PC-IP>                     │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ PRIVACY NOTICE ─────────────────────────────────────────────────────────────┐
+│                                                                              │
+│  ⚠️  IMPORTANT: This system captures and transmits:                          │
+│                                                                              │
+│      • Real-time screen images                                               │
+│      • Application usage data                                                │
+│      • System resource metrics                                               │
+│      • Activity history                                                      │
+│                                                                              │
+│  📢 REQUIREMENTS:                                                            │
+│                                                                              │
+│      ✓ Inform users they are being monitored                                 │
+│      ✓ Post visible notices in computer labs                                 │
+│      ✓ Comply with organization policies                                     │
+│      ✓ Follow legal requirements                                             │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ QUICK TEST ─────────────────────────────────────────────────────────────────┐
+│                                                                              │
+│  Test on your own computer first:                                            │
+│                                                                              │
+│  1. Build:                                                                   │
+│     PS> .\Scripts\Build-All.ps1                                              │
+│                                                                              │
+│  2. Run server:                                                              │
+│     PS> .\DeploymentPackage\Server\WinServer2019.exe                        │
+│     Click: "📊 Live Monitoring" → "Start Monitoring Server"                 │
+│                                                                              │
+│  3. Run client (new terminal):                                               │
+│     PS> Copy-Item .\DeploymentPackage\Client\* C:\Temp\PCMonitor\           │
+│     PS> Start-Process C:\Temp\PCMonitor\PCMonitorClient.exe -WindowStyle Hidden
+│                                                                              │
+│  4. View your screen:                                                        │
+│     Wait 10 seconds → Your PC appears → Double-click it!                     │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ SUPPORT ────────────────────────────────────────────────────────────────────┐
+│                                                                              │
+│  📚 Documentation:                                                           │
+│     • SCREEN-VIEWING-GUIDE.md           (How to use)                        │
+│     • SCREEN-VIEWING-IMPLEMENTATION.md  (Technical details)                 │
+│     • DeploymentPackage/DEPLOYMENT-README.md                                │
+│                                                                              │
+│  🔧 Tools:                                                                   │
+│     • Build-All.ps1                     (Build automation)                  │
+│     • Deploy-Standalone.ps1             (Non-domain deployment)             │
+│     • Deploy-MonitoringClient.ps1       (Domain deployment)                 │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                       ✅ READY FOR DEPLOYMENT!                               ║
+║                                                                              ║
+║  All files built and packaged in: DeploymentPackage\                        ║
+║                                                                              ║
+║  Next: Deploy to your lab PCs and start monitoring with screen viewing!     ║
+╚══════════════════════════════════════════════════════════════════════════════╝

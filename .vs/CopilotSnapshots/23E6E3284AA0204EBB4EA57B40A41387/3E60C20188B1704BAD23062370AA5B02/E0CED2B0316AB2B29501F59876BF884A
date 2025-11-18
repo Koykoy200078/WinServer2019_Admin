@@ -1,0 +1,185 @@
+﻿using System;
+using System.Drawing;
+using System.IO;
+using System.Windows.Forms;
+
+namespace WinServer2019
+{
+    public partial class ScreenViewerForm : Form
+    {
+        private PictureBox pictureBox;
+        private Panel controlPanel;
+        private Label lblPCName;
+        private Label lblStatus;
+        private Button btnRefresh;
+        private Button btnClose;
+        private Timer refreshTimer;
+        
+        private string pcName;
+        private MonitoringServer server;
+
+        public ScreenViewerForm(string pcName, MonitoringServer server)
+        {
+            this.pcName = pcName;
+            this.server = server;
+            InitializeComponent();
+            InitializeCustomComponents();
+            
+            server.OnClientUpdate += Server_OnClientUpdate;
+            this.FormClosing += ScreenViewerForm_FormClosing;
+        }
+
+        private void InitializeCustomComponents()
+        {
+            this.Text = $"Screen View - {pcName}";
+            this.Size = new Size(1024, 768);
+            this.StartPosition = FormStartPosition.CenterScreen;
+            this.BackColor = Color.FromArgb(45, 45, 48);
+
+            // Control Panel
+            controlPanel = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 50,
+                BackColor = Color.FromArgb(30, 30, 30)
+            };
+
+            lblPCName = new Label
+            {
+                Text = $"Viewing: {pcName}",
+                Location = new Point(10, 15),
+                Size = new Size(300, 20),
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold)
+            };
+
+            lblStatus = new Label
+            {
+                Text = "Waiting for screen data...",
+                Location = new Point(320, 15),
+                Size = new Size(400, 20),
+                ForeColor = Color.LightGray,
+                Font = new Font("Segoe UI", 9)
+            };
+
+            btnRefresh = new Button
+            {
+                Text = "⟳ Refresh",
+                Location = new Point(730, 10),
+                Size = new Size(100, 30),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(0, 120, 215),
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold)
+            };
+            btnRefresh.FlatAppearance.BorderSize = 0;
+            btnRefresh.Click += BtnRefresh_Click;
+
+            btnClose = new Button
+            {
+                Text = "✕ Close",
+                Location = new Point(840, 10),
+                Size = new Size(100, 30),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(200, 50, 50),
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold)
+            };
+            btnClose.FlatAppearance.BorderSize = 0;
+            btnClose.Click += (s, e) => this.Close();
+
+            controlPanel.Controls.AddRange(new Control[] { lblPCName, lblStatus, btnRefresh, btnClose });
+
+            // Picture Box for screen display
+            pictureBox = new PictureBox
+            {
+                Dock = DockStyle.Fill,
+                SizeMode = PictureBoxSizeMode.Zoom,
+                BackColor = Color.Black
+            };
+
+            this.Controls.Add(pictureBox);
+            this.Controls.Add(controlPanel);
+
+            // Auto-refresh timer (every 1 second)
+            refreshTimer = new Timer
+            {
+                Interval = 1000,
+                Enabled = true
+            };
+            refreshTimer.Tick += RefreshTimer_Tick;
+        }
+
+        private void Server_OnClientUpdate(ClientActivity activity)
+        {
+            if (activity.PCName == pcName && activity.ScreenshotData != null && activity.ScreenshotData.Length > 0)
+            {
+                if (InvokeRequired)
+                {
+                    BeginInvoke(new Action(() => UpdateScreenshot(activity)));
+                }
+                else
+                {
+                    UpdateScreenshot(activity);
+                }
+            }
+        }
+
+        private void UpdateScreenshot(ClientActivity activity)
+        {
+            try
+            {
+                using (var ms = new MemoryStream(activity.ScreenshotData))
+                {
+                    var image = Image.FromStream(ms);
+                    
+                    // Dispose old image
+                    if (pictureBox.Image != null)
+                    {
+                        var oldImage = pictureBox.Image;
+                        pictureBox.Image = null;
+                        oldImage.Dispose();
+                    }
+                    
+                    pictureBox.Image = image;
+                    lblStatus.Text = $"Last Update: {activity.LastUpdate:HH:mm:ss} | Active: {activity.ActiveWindow}";
+                    lblStatus.ForeColor = Color.LightGreen;
+                }
+            }
+            catch (Exception ex)
+            {
+                lblStatus.Text = $"Error displaying screen: {ex.Message}";
+                lblStatus.ForeColor = Color.Red;
+            }
+        }
+
+        private void RefreshTimer_Tick(object sender, EventArgs e)
+        {
+            // Check if client is still connected
+            var clients = server.GetConnectedClientsDictionary();
+            if (!clients.ContainsKey(pcName))
+            {
+                lblStatus.Text = "Client disconnected";
+                lblStatus.ForeColor = Color.Red;
+            }
+        }
+
+        private void BtnRefresh_Click(object sender, EventArgs e)
+        {
+            lblStatus.Text = "Requesting screen update...";
+            lblStatus.ForeColor = Color.Yellow;
+        }
+
+        private void ScreenViewerForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            refreshTimer?.Stop();
+            refreshTimer?.Dispose();
+            server.OnClientUpdate -= Server_OnClientUpdate;
+            
+            if (pictureBox.Image != null)
+            {
+                pictureBox.Image.Dispose();
+            }
+        }
+    }
+}

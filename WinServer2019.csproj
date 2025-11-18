@@ -73,12 +73,16 @@
     <SignManifests>true</SignManifests>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System">
       <HintPath>C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.8.1\System.dll</HintPath>
     </Reference>
     <Reference Include="System.Core" />
     <Reference Include="System.DirectoryServices" />
     <Reference Include="System.DirectoryServices.AccountManagement" />
+    <Reference Include="System.Management" />
     <Reference Include="System.Management.Automation">
       <HintPath>C:\Program Files (x86)\Reference Assemblies\Microsoft\WindowsPowerShell\3.0\System.Management.Automation.dll</HintPath>
     </Reference>
@@ -105,11 +109,30 @@
     <Compile Include="MainActivity.Designer.cs">
       <DependentUpon>MainActivity.cs</DependentUpon>
     </Compile>
+    <Compile Include="MonitoringForm.Designer.cs">
+      <DependentUpon>MonitoringForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MonitoringServer.cs" />
+    <Compile Include="MonitoringForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ScreenViewerForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ScreenViewerForm.Designer.cs">
+      <DependentUpon>ScreenViewerForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="PowerShellExecutor.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ScreenViewerForm.Designer.cs">
+      <DependentUpon>ScreenViewerForm.cs</DependentUpon>
+    </Compile>
     <EmbeddedResource Include="MainActivity.resx">
       <DependentUpon>MainActivity.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MonitoringForm.resx">
+      <DependentUpon>MonitoringForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
@@ -131,6 +154,7 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <None Include="packages.config" />
     <None Include="WinServer2019_TemporaryKey.pfx" />
   </ItemGroup>
   <ItemGroup>

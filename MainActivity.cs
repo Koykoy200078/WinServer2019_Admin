@@ -679,6 +679,20 @@ namespace WinServer2019
             }
         }
 
+        private void BtnMonitoring_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                var monitoringForm = new MonitoringForm();
+                monitoringForm.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error opening monitoring: {ex.Message}", "Error", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
         private void MainActivity_FormClosing(object sender, FormClosingEventArgs e)
         {
             if (ConfirmAction("Are you sure you want to exit?"))

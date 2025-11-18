@@ -1,0 +1,385 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
+using System.Windows.Forms;
+
+namespace WinServer2019
+{
+    public partial class MonitoringForm : Form
+    {
+        private MonitoringServer monitoringServer;
+        private System.Windows.Forms.Timer refreshTimer;
+        private ListView lvClients;
+        private RichTextBox rtbActivityLog;
+        private Button btnStartStop;
+        private Label lblStatus;
+        private Panel panelDetails;
+        private RichTextBox rtbClientDetails;
+
+        public MonitoringForm()
+        {
+            InitializeComponent();
+            InitializeCustomComponents();
+            monitoringServer = new MonitoringServer();
+            SetupEventHandlers();
+        }
+
+        private void InitializeCustomComponents()
+        {
+            this.Text = "Real-Time PC Monitoring";
+            this.Size = new Size(1400, 800);
+            this.StartPosition = FormStartPosition.CenterScreen;
+            this.FormBorderStyle = FormBorderStyle.Sizable;
+
+            // Status Label
+            lblStatus = new Label
+            {
+                Text = "Server Status: Stopped",
+                Location = new Point(20, 20),
+                Size = new Size(300, 25),
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                ForeColor = Color.Red
+            };
+
+            // Start/Stop Button
+            btnStartStop = new Button
+            {
+                Text = "Start Monitoring Server",
+                Location = new Point(350, 15),
+                Size = new Size(180, 35),
+                BackColor = Color.FromArgb(0, 120, 215),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold)
+            };
+            btnStartStop.Click += BtnStartStop_Click;
+
+            // Client List View
+            var lblClients = new Label
+            {
+                Text = "Connected Clients:",
+                Location = new Point(20, 60),
+                Size = new Size(200, 25),
+                Font = new Font("Segoe UI", 10, FontStyle.Bold)
+            };
+
+            lvClients = new ListView
+            {
+                Location = new Point(20, 90),
+                Size = new Size(900, 400),
+                View = View.Details,
+                FullRowSelect = true,
+                GridLines = true,
+                Font = new Font("Consolas", 9)
+            };
+            lvClients.Columns.Add("PC Name", 120);
+            lvClients.Columns.Add("Username", 120);
+            lvClients.Columns.Add("Active Window", 250);
+            lvClients.Columns.Add("Active Process", 150);
+            lvClients.Columns.Add("CPU %", 70);
+            lvClients.Columns.Add("Memory MB", 90);
+            lvClients.Columns.Add("Last Update", 100);
+            lvClients.Columns.Add("Actions", 80);
+            lvClients.SelectedIndexChanged += LvClients_SelectedIndexChanged;
+            lvClients.MouseDoubleClick += LvClients_MouseDoubleClick;
+
+            // Activity Log
+            var lblLog = new Label
+            {
+                Text = "Activity Log:",
+                Location = new Point(20, 510),
+                Size = new Size(150, 25),
+                Font = new Font("Segoe UI", 10, FontStyle.Bold)
+            };
+
+            rtbActivityLog = new RichTextBox
+            {
+                Location = new Point(20, 540),
+                Size = new Size(900, 200),
+                BackColor = Color.Black,
+                ForeColor = Color.Lime,
+                Font = new Font("Consolas", 9),
+                ReadOnly = true
+            };
+
+            // Details Panel
+            var lblDetails = new Label
+            {
+                Text = "Client Details:",
+                Location = new Point(940, 60),
+                Size = new Size(200, 25),
+                Font = new Font("Segoe UI", 10, FontStyle.Bold)
+            };
+
+            panelDetails = new Panel
+            {
+                Location = new Point(940, 90),
+                Size = new Size(420, 650),
+                BorderStyle = BorderStyle.FixedSingle,
+                BackColor = Color.White
+            };
+
+            rtbClientDetails = new RichTextBox
+            {
+                Location = new Point(5, 5),
+                Size = new Size(410, 640),
+                BackColor = Color.FromArgb(240, 240, 240),
+                Font = new Font("Segoe UI", 9),
+                ReadOnly = true,
+                BorderStyle = BorderStyle.None
+            };
+            panelDetails.Controls.Add(rtbClientDetails);
+
+            // Add controls
+            this.Controls.AddRange(new Control[] 
+            { 
+                lblStatus, btnStartStop, lblClients, lvClients, 
+                lblLog, rtbActivityLog, lblDetails, panelDetails 
+            });
+
+            // Refresh Timer
+            refreshTimer = new System.Windows.Forms.Timer();
+            refreshTimer.Interval = 1000;
+            refreshTimer.Tick += RefreshTimer_Tick;
+
+            this.FormClosing += MonitoringForm_FormClosing;
+        }
+
+        private void SetupEventHandlers()
+        {
+            monitoringServer.OnLogMessage += (msg) =>
+            {
+                AppendLog(msg, Color.Cyan);
+            };
+
+            monitoringServer.OnClientUpdate += (activity) =>
+            {
+                UpdateClientList(activity);
+                AppendLog($"Update from {activity.PCName}: {activity.ActiveWindow}", Color.White);
+            };
+
+            monitoringServer.OnClientDisconnected += (clientId) =>
+            {
+                RemoveClientFromList(clientId);
+                AppendLog($"Client disconnected: {clientId}", Color.Orange);
+            };
+        }
+
+        private void BtnStartStop_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (btnStartStop.Text.Contains("Start"))
+                {
+                    monitoringServer.Start();
+                    btnStartStop.Text = "Stop Monitoring Server";
+                    btnStartStop.BackColor = Color.FromArgb(192, 0, 0);
+                    lblStatus.Text = "Server Status: Running";
+                    lblStatus.ForeColor = Color.Green;
+                    refreshTimer.Start();
+                }
+                else
+                {
+                    monitoringServer.Stop();
+                    btnStartStop.Text = "Start Monitoring Server";
+                    btnStartStop.BackColor = Color.FromArgb(0, 120, 215);
+                    lblStatus.Text = "Server Status: Stopped";
+                    lblStatus.ForeColor = Color.Red;
+                    refreshTimer.Stop();
+                    lvClients.Items.Clear();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error: {ex.Message}", "Server Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void RefreshTimer_Tick(object sender, EventArgs e)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => RefreshTimer_Tick(sender, e)));
+                return;
+            }
+
+            var clients = monitoringServer.GetConnectedClients();
+            
+            // Update existing items
+            foreach (ListViewItem item in lvClients.Items)
+            {
+                var client = clients.FirstOrDefault(c => c.PCName == item.Text);
+                if (client != null)
+                {
+                    UpdateListViewItem(item, client);
+                }
+            }
+        }
+
+        private void UpdateClientList(ClientActivity activity)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => UpdateClientList(activity)));
+                return;
+            }
+
+            var existingItem = lvClients.Items.Cast<ListViewItem>()
+                .FirstOrDefault(i => i.Text == activity.PCName);
+
+            if (existingItem != null)
+            {
+                UpdateListViewItem(existingItem, activity);
+            }
+            else
+            {
+                var item = new ListViewItem(activity.PCName);
+                item.SubItems.Add(activity.Username);
+                item.SubItems.Add(activity.ActiveWindow);
+                item.SubItems.Add(activity.ActiveProcess);
+                item.SubItems.Add(activity.CPUUsage.ToString("F1"));
+                item.SubItems.Add(activity.MemoryUsageMB.ToString("F0"));
+                item.SubItems.Add(activity.LastUpdate.ToString("HH:mm:ss"));
+                item.SubItems.Add("👁 View");
+                item.Tag = activity;
+                lvClients.Items.Add(item);
+            }
+        }
+
+        private void UpdateListViewItem(ListViewItem item, ClientActivity activity)
+        {
+            item.SubItems[1].Text = activity.Username;
+            item.SubItems[2].Text = activity.ActiveWindow;
+            item.SubItems[3].Text = activity.ActiveProcess;
+            item.SubItems[4].Text = activity.CPUUsage.ToString("F1");
+            item.SubItems[5].Text = activity.MemoryUsageMB.ToString("F0");
+            item.SubItems[6].Text = activity.LastUpdate.ToString("HH:mm:ss");
+            item.SubItems[7].Text = "👁 View";
+            item.Tag = activity;
+
+            // Highlight if recently updated
+            var timeSinceUpdate = (DateTime.Now - activity.LastUpdate).TotalSeconds;
+            item.BackColor = timeSinceUpdate < 2 ? Color.LightGreen : Color.White;
+        }
+
+        private void RemoveClientFromList(string clientId)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => RemoveClientFromList(clientId)));
+                return;
+            }
+
+            var item = lvClients.Items.Cast<ListViewItem>()
+                .FirstOrDefault(i => i.Text == clientId);
+            
+            if (item != null)
+            {
+                lvClients.Items.Remove(item);
+            }
+        }
+
+        private void LvClients_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            if (lvClients.SelectedItems.Count == 0) return;
+
+            var activity = lvClients.SelectedItems[0].Tag as ClientActivity;
+            if (activity == null) return;
+
+            // Open screen viewer
+            var screenViewer = new ScreenViewerForm(activity.PCName, monitoringServer);
+            screenViewer.Show();
+        }
+
+        private void LvClients_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (lvClients.SelectedItems.Count == 0) return;
+
+            var activity = lvClients.SelectedItems[0].Tag as ClientActivity;
+            if (activity == null) return;
+
+            rtbClientDetails.Clear();
+            rtbClientDetails.SelectionFont = new Font("Segoe UI", 10, FontStyle.Bold);
+            rtbClientDetails.SelectionColor = Color.DarkBlue;
+            rtbClientDetails.AppendText($"📊 {activity.PCName} - Details\n");
+            rtbClientDetails.AppendText(new string('─', 40) + "\n\n");
+
+            rtbClientDetails.SelectionFont = new Font("Segoe UI", 9, FontStyle.Bold);
+            rtbClientDetails.SelectionColor = Color.Black;
+            rtbClientDetails.AppendText("User: ");
+            rtbClientDetails.SelectionFont = new Font("Segoe UI", 9);
+            rtbClientDetails.AppendText($"{activity.Username}\n");
+
+            rtbClientDetails.SelectionFont = new Font("Segoe UI", 9, FontStyle.Bold);
+            rtbClientDetails.AppendText("IP Address: ");
+            rtbClientDetails.SelectionFont = new Font("Segoe UI", 9);
+            rtbClientDetails.AppendText($"{activity.IPAddress}\n\n");
+
+            rtbClientDetails.SelectionFont = new Font("Segoe UI", 9, FontStyle.Bold);
+            rtbClientDetails.SelectionColor = Color.DarkGreen;
+            rtbClientDetails.AppendText("🖥️ Current Activity:\n");
+            rtbClientDetails.SelectionFont = new Font("Segoe UI", 9);
+            rtbClientDetails.SelectionColor = Color.Black;
+            rtbClientDetails.AppendText($"Window: {activity.ActiveWindow}\n");
+            rtbClientDetails.AppendText($"Process: {activity.ActiveProcess}\n\n");
+
+            rtbClientDetails.SelectionFont = new Font("Segoe UI", 9, FontStyle.Bold);
+            rtbClientDetails.SelectionColor = Color.DarkOrange;
+            rtbClientDetails.AppendText("💻 System Resources:\n");
+            rtbClientDetails.SelectionFont = new Font("Segoe UI", 9);
+            rtbClientDetails.SelectionColor = Color.Black;
+            rtbClientDetails.AppendText($"CPU Usage: {activity.CPUUsage:F1}%\n");
+            rtbClientDetails.AppendText($"Memory Usage: {activity.MemoryUsageMB:F0} MB\n\n");
+
+            if (activity.RunningProcesses != null && activity.RunningProcesses.Any())
+            {
+                rtbClientDetails.SelectionFont = new Font("Segoe UI", 9, FontStyle.Bold);
+                rtbClientDetails.SelectionColor = Color.DarkRed;
+                rtbClientDetails.AppendText("🔄 Top Running Processes:\n");
+                rtbClientDetails.SelectionFont = new Font("Consolas", 8);
+                rtbClientDetails.SelectionColor = Color.Black;
+                foreach (var proc in activity.RunningProcesses.Take(10))
+                {
+                    rtbClientDetails.AppendText($"  • {proc}\n");
+                }
+                rtbClientDetails.AppendText("\n");
+            }
+
+            if (activity.RecentActivities != null && activity.RecentActivities.Any())
+            {
+                rtbClientDetails.SelectionFont = new Font("Segoe UI", 9, FontStyle.Bold);
+                rtbClientDetails.SelectionColor = Color.DarkMagenta;
+                rtbClientDetails.AppendText("📝 Recent Activities:\n");
+                rtbClientDetails.SelectionFont = new Font("Segoe UI", 8);
+                rtbClientDetails.SelectionColor = Color.DarkGray;
+                foreach (var act in activity.RecentActivities.Take(15))
+                {
+                    rtbClientDetails.AppendText($"  {act}\n");
+                }
+            }
+        }
+
+        private void AppendLog(string message, Color color)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => AppendLog(message, color)));
+                return;
+            }
+
+            rtbActivityLog.SelectionStart = rtbActivityLog.TextLength;
+            rtbActivityLog.SelectionLength = 0;
+            rtbActivityLog.SelectionColor = color;
+            rtbActivityLog.AppendText($"[{DateTime.Now:HH:mm:ss}] {message}\n");
+            rtbActivityLog.ScrollToCaret();
+        }
+
+        private void MonitoringForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            refreshTimer?.Stop();
+            monitoringServer?.Stop();
+            monitoringServer?.Dispose();
+        }
+    }
+}

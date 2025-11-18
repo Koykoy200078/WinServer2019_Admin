@@ -3,31 +3,52 @@
   "WorkspaceRootPath": "D:\\Projects\\WinServer2019_Admin\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|D:\\Projects\\WinServer2019_Admin\\mainactivity.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|solutionrelative:mainactivity.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|d:\\projects\\winserver2019_admin\\monitoringform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|solutionrelative:monitoringform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|d:\\projects\\winserver2019_admin\\mainactivity.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "AbsoluteMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|D:\\Projects\\WinServer2019_Admin\\monitoringform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|solutionrelative:monitoringform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|D:\\Projects\\WinServer2019_Admin\\screenviewerform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|solutionrelative:screenviewerform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|D:\\Projects\\WinServer2019_Admin\\screenviewerform.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|solutionrelative:screenviewerform.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|D:\\Projects\\WinServer2019_Admin\\monitoringform.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|solutionrelative:monitoringform.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|D:\\Projects\\WinServer2019_Admin\\mainactivity.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
       "RelativeMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|solutionrelative:mainactivity.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|D:\\Projects\\WinServer2019_Admin\\mainactivity.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|solutionrelative:mainactivity.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|D:\\Projects\\WinServer2019_Admin\\powershellexecutor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|solutionrelative:powershellexecutor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|D:\\Projects\\WinServer2019_Admin\\loginform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
       "RelativeMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|solutionrelative:loginform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{00000000-0000-0000-0000-000000000000}|\u003CSolution\u003E|WinServer2019||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|"
+      "AbsoluteMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|D:\\Projects\\WinServer2019_Admin\\screenviewerform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|solutionrelative:screenviewerform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|D:\\Projects\\WinServer2019_Admin\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|d:\\projects\\winserver2019_admin\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|d:\\projects\\winserver2019_admin\\powershellexecutor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|solutionrelative:powershellexecutor.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|d:\\projects\\winserver2019_admin\\packages.config||{FA3CD31E-987B-443A-9B81-186104E8DAC1}",
+      "RelativeMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|solutionrelative:packages.config||{FA3CD31E-987B-443A-9B81-186104E8DAC1}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|d:\\projects\\winserver2019_admin\\monitoringserver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{81430166-0D63-4570-A4E2-30CA6B3EFD6D}|WinServer2019.csproj|solutionrelative:monitoringserver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -37,7 +58,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 6,
+          "SelectedChildIndex": 2,
           "Children": [
             {
               "$type": "Bookmark",
@@ -46,17 +67,106 @@
             {
               "$type": "Document",
               "DocumentIndex": 5,
-              "Title": "WinServer2019",
-              "DocumentMoniker": "D:\\Projects\\WinServer2019_Admin\\WinServer2019.csproj",
-              "RelativeDocumentMoniker": "WinServer2019.csproj",
-              "ToolTip": "D:\\Projects\\WinServer2019_Admin\\WinServer2019.csproj*",
-              "RelativeToolTip": "WinServer2019.csproj*",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2025-11-18T04:19:56.768Z"
+              "Title": "MainActivity.cs [Design]",
+              "DocumentMoniker": "D:\\Projects\\WinServer2019_Admin\\MainActivity.cs",
+              "RelativeDocumentMoniker": "MainActivity.cs",
+              "ToolTip": "D:\\Projects\\WinServer2019_Admin\\MainActivity.cs [Design]",
+              "RelativeToolTip": "MainActivity.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-18T06:56:33.438Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "MonitoringForm.cs [Design]",
+              "DocumentMoniker": "D:\\Projects\\WinServer2019_Admin\\MonitoringForm.cs",
+              "RelativeDocumentMoniker": "MonitoringForm.cs",
+              "ToolTip": "D:\\Projects\\WinServer2019_Admin\\MonitoringForm.cs [Design]",
+              "RelativeToolTip": "MonitoringForm.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-18T06:56:33.433Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "MonitoringForm.cs",
+              "DocumentMoniker": "D:\\Projects\\WinServer2019_Admin\\MonitoringForm.cs",
+              "RelativeDocumentMoniker": "MonitoringForm.cs",
+              "ToolTip": "D:\\Projects\\WinServer2019_Admin\\MonitoringForm.cs",
+              "RelativeToolTip": "MonitoringForm.cs",
+              "ViewState": "AgIAAPwAAAAAAAAAAIAwwBUBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-18T06:56:33.307Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 6,
+              "Title": "LoginForm.cs [Design]",
+              "DocumentMoniker": "D:\\Projects\\WinServer2019_Admin\\LoginForm.cs",
+              "RelativeDocumentMoniker": "LoginForm.cs",
+              "ToolTip": "D:\\Projects\\WinServer2019_Admin\\LoginForm.cs [Design]",
+              "RelativeToolTip": "LoginForm.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-18T06:56:33.438Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "MonitoringForm.Designer.cs",
+              "DocumentMoniker": "D:\\Projects\\WinServer2019_Admin\\MonitoringForm.Designer.cs",
+              "RelativeDocumentMoniker": "MonitoringForm.Designer.cs",
+              "ToolTip": "D:\\Projects\\WinServer2019_Admin\\MonitoringForm.Designer.cs",
+              "RelativeToolTip": "MonitoringForm.Designer.cs",
+              "ViewState": "AgIAAIsAAAAAAAAAAIAwwLIAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-18T06:56:33.308Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "ScreenViewerForm.Designer.cs",
+              "DocumentMoniker": "D:\\Projects\\WinServer2019_Admin\\ScreenViewerForm.Designer.cs",
+              "RelativeDocumentMoniker": "ScreenViewerForm.Designer.cs",
+              "ToolTip": "D:\\Projects\\WinServer2019_Admin\\ScreenViewerForm.Designer.cs",
+              "RelativeToolTip": "ScreenViewerForm.Designer.cs",
+              "ViewState": "AgIAAHAAAAAAAAAAAAAcwI0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-18T06:56:33.308Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "ScreenViewerForm.cs",
+              "DocumentMoniker": "D:\\Projects\\WinServer2019_Admin\\ScreenViewerForm.cs",
+              "RelativeDocumentMoniker": "ScreenViewerForm.cs",
+              "ToolTip": "D:\\Projects\\WinServer2019_Admin\\ScreenViewerForm.cs",
+              "RelativeToolTip": "ScreenViewerForm.cs",
+              "ViewState": "AgIAAGUAAAAAAAAAAAAQwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-18T06:56:33.308Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "ScreenViewerForm.cs [Design]",
+              "DocumentMoniker": "D:\\Projects\\WinServer2019_Admin\\ScreenViewerForm.cs",
+              "RelativeDocumentMoniker": "ScreenViewerForm.cs",
+              "ToolTip": "D:\\Projects\\WinServer2019_Admin\\ScreenViewerForm.cs [Design]",
+              "RelativeToolTip": "ScreenViewerForm.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-18T06:56:33.437Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
               "Title": "Program.cs",
               "DocumentMoniker": "D:\\Projects\\WinServer2019_Admin\\Program.cs",
               "RelativeDocumentMoniker": "Program.cs",
@@ -64,70 +174,47 @@
               "RelativeToolTip": "Program.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-18T02:00:19.547Z"
+              "WhenOpened": "2025-11-18T07:08:59.88Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 9,
               "Title": "PowerShellExecutor.cs",
               "DocumentMoniker": "D:\\Projects\\WinServer2019_Admin\\PowerShellExecutor.cs",
               "RelativeDocumentMoniker": "PowerShellExecutor.cs",
               "ToolTip": "D:\\Projects\\WinServer2019_Admin\\PowerShellExecutor.cs",
               "RelativeToolTip": "PowerShellExecutor.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAAwAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-18T02:00:18.06Z",
+              "WhenOpened": "2025-11-18T07:08:59.226Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "LoginForm.cs [Design]",
-              "DocumentMoniker": "D:\\Projects\\WinServer2019_Admin\\LoginForm.cs",
-              "RelativeDocumentMoniker": "LoginForm.cs",
-              "ToolTip": "D:\\Projects\\WinServer2019_Admin\\LoginForm.cs [Design]",
-              "RelativeToolTip": "LoginForm.cs [Design]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-18T01:57:38.215Z",
-              "EditorCaption": " [Design]"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "MainActivity.Designer.cs",
-              "DocumentMoniker": "D:\\Projects\\WinServer2019_Admin\\MainActivity.Designer.cs",
-              "RelativeDocumentMoniker": "MainActivity.Designer.cs",
-              "ToolTip": "D:\\Projects\\WinServer2019_Admin\\MainActivity.Designer.cs",
-              "RelativeToolTip": "MainActivity.Designer.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAA0AAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-18T01:57:38.22Z",
+              "DocumentIndex": 10,
+              "Title": "packages.config",
+              "DocumentMoniker": "D:\\Projects\\WinServer2019_Admin\\packages.config",
+              "RelativeDocumentMoniker": "packages.config",
+              "ToolTip": "D:\\Projects\\WinServer2019_Admin\\packages.config",
+              "RelativeToolTip": "packages.config",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000601|",
+              "WhenOpened": "2025-11-18T07:08:58.5Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "MainActivity.cs",
-              "DocumentMoniker": "D:\\Projects\\WinServer2019_Admin\\MainActivity.cs",
-              "RelativeDocumentMoniker": "MainActivity.cs",
-              "ToolTip": "D:\\Projects\\WinServer2019_Admin\\MainActivity.cs",
-              "RelativeToolTip": "MainActivity.cs",
-              "ViewState": "AgIAABIAAAAAAAAAAAAhwBMAAAAeAAAAAAAAAA==",
+              "DocumentIndex": 11,
+              "Title": "MonitoringServer.cs",
+              "DocumentMoniker": "D:\\Projects\\WinServer2019_Admin\\MonitoringServer.cs",
+              "RelativeDocumentMoniker": "MonitoringServer.cs",
+              "ToolTip": "D:\\Projects\\WinServer2019_Admin\\MonitoringServer.cs",
+              "RelativeToolTip": "MonitoringServer.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-18T01:57:38.221Z",
+              "WhenOpened": "2025-11-18T07:08:56.356Z",
               "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "MainActivity.cs [Design]",
-              "DocumentMoniker": "D:\\Projects\\WinServer2019_Admin\\MainActivity.cs",
-              "RelativeDocumentMoniker": "MainActivity.cs",
-              "ToolTip": "D:\\Projects\\WinServer2019_Admin\\MainActivity.cs [Design]",
-              "RelativeToolTip": "MainActivity.cs [Design]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-18T01:57:38.221Z",
-              "EditorCaption": " [Design]"
             }
           ]
         }

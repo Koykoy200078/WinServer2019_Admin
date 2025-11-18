@@ -52,6 +52,7 @@
         // Control buttons
         private System.Windows.Forms.Button btnClearOutput;
         private System.Windows.Forms.Button btnStopExecution;
+        private System.Windows.Forms.Button btnMonitoring;
 
         /// <summary>
         /// Clean up any resources being used.
@@ -107,6 +108,7 @@
             this.btnCleanTempAll = new System.Windows.Forms.Button();
             this.btnClearOutput = new System.Windows.Forms.Button();
             this.btnStopExecution = new System.Windows.Forms.Button();
+            this.btnMonitoring = new System.Windows.Forms.Button();
             this.lblDomain = new System.Windows.Forms.Label();
             this.lblWelcome = new System.Windows.Forms.Label();
             this.statusStrip = new System.Windows.Forms.StatusStrip();
@@ -458,6 +460,20 @@
             this.btnStopExecution.UseVisualStyleBackColor = false;
             this.btnStopExecution.Click += new System.EventHandler(this.BtnStopExecution_Click);
             // 
+            // btnMonitoring
+            // 
+            this.btnMonitoring.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(150)))), ((int)(((byte)(0)))));
+            this.btnMonitoring.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnMonitoring.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.btnMonitoring.ForeColor = System.Drawing.Color.White;
+            this.btnMonitoring.Location = new System.Drawing.Point(380, 79);
+            this.btnMonitoring.Name = "btnMonitoring";
+            this.btnMonitoring.Size = new System.Drawing.Size(150, 30);
+            this.btnMonitoring.TabIndex = 7;
+            this.btnMonitoring.Text = "📊 Live Monitoring";
+            this.btnMonitoring.UseVisualStyleBackColor = false;
+            this.btnMonitoring.Click += new System.EventHandler(this.BtnMonitoring_Click);
+            // 
             // lblDomain
             // 
             this.lblDomain.Font = new System.Drawing.Font("Segoe UI", 9F);
@@ -512,6 +528,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1449, 515);
             this.Controls.Add(this.statusStrip);
+            this.Controls.Add(this.btnMonitoring);
             this.Controls.Add(this.btnStopExecution);
             this.Controls.Add(this.btnClearOutput);
             this.Controls.Add(this.rtbOutput);
