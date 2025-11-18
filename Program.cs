@@ -16,7 +16,28 @@ namespace WinServer2019
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Form1());
+            
+            // Show login form first
+            using (LoginForm loginForm = new LoginForm())
+            {
+                if (loginForm.ShowDialog() == DialogResult.OK)
+                {
+                    // Login successful, open main activity with credentials
+                    Application.Run(new MainActivity(
+                        loginForm.Username,
+                        loginForm.Password,
+                        loginForm.Domain
+                    ));
+                }
+                else
+                {
+                    // Login cancelled or failed
+                    MessageBox.Show("Login cancelled. Application will exit.", 
+                        "PC Management System", 
+                        MessageBoxButtons.OK, 
+                        MessageBoxIcon.Information);
+                }
+            }
         }
     }
 }
