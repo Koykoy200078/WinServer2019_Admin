@@ -193,41 +193,41 @@ namespace WinServer2019
             rtbClientDetails.Clear();
             rtbClientDetails.SelectionFont = new Font("Segoe UI", 10, FontStyle.Bold);
             rtbClientDetails.SelectionColor = Color.DarkBlue;
-            rtbClientDetails.AppendText($"📊 {activity.PCName} - Details\n");
+            rtbClientDetails.AppendText($" 📊 {activity.PCName} - Details\n");
             rtbClientDetails.AppendText(new string('─', 40) + "\n\n");
 
             rtbClientDetails.SelectionFont = new Font("Segoe UI", 9, FontStyle.Bold);
             rtbClientDetails.SelectionColor = Color.Black;
-            rtbClientDetails.AppendText("User: ");
+            rtbClientDetails.AppendText(" User: ");
             rtbClientDetails.SelectionFont = new Font("Segoe UI", 9);
-            rtbClientDetails.AppendText($"{activity.Username}\n");
+            rtbClientDetails.AppendText($" {activity.Username}\n");
 
             rtbClientDetails.SelectionFont = new Font("Segoe UI", 9, FontStyle.Bold);
-            rtbClientDetails.AppendText("IP Address: ");
+            rtbClientDetails.AppendText(" IP Address: ");
             rtbClientDetails.SelectionFont = new Font("Segoe UI", 9);
-            rtbClientDetails.AppendText($"{activity.IPAddress}\n\n");
+            rtbClientDetails.AppendText($" {activity.IPAddress}\n\n");
 
             rtbClientDetails.SelectionFont = new Font("Segoe UI", 9, FontStyle.Bold);
             rtbClientDetails.SelectionColor = Color.DarkGreen;
-            rtbClientDetails.AppendText("🖥️ Current Activity:\n");
+            rtbClientDetails.AppendText(" 🖥️ Current Activity:\n");
             rtbClientDetails.SelectionFont = new Font("Segoe UI", 9);
             rtbClientDetails.SelectionColor = Color.Black;
-            rtbClientDetails.AppendText($"Window: {activity.ActiveWindow}\n");
-            rtbClientDetails.AppendText($"Process: {activity.ActiveProcess}\n\n");
+            rtbClientDetails.AppendText($" Window: {activity.ActiveWindow}\n");
+            rtbClientDetails.AppendText($" Process: {activity.ActiveProcess}\n\n");
 
             rtbClientDetails.SelectionFont = new Font("Segoe UI", 9, FontStyle.Bold);
             rtbClientDetails.SelectionColor = Color.DarkOrange;
-            rtbClientDetails.AppendText("💻 System Resources:\n");
+            rtbClientDetails.AppendText(" 💻 System Resources:\n");
             rtbClientDetails.SelectionFont = new Font("Segoe UI", 9);
             rtbClientDetails.SelectionColor = Color.Black;
-            rtbClientDetails.AppendText($"CPU Usage: {activity.CPUUsage:F1}%\n");
-            rtbClientDetails.AppendText($"Memory Usage: {activity.MemoryUsageMB:F0} MB\n\n");
+            rtbClientDetails.AppendText($" CPU Usage: {activity.CPUUsage:F1}%\n");
+            rtbClientDetails.AppendText($" Memory Usage: {activity.MemoryUsageMB:F0} MB\n\n");
 
             if (activity.RunningProcesses != null && activity.RunningProcesses.Any())
             {
                 rtbClientDetails.SelectionFont = new Font("Segoe UI", 9, FontStyle.Bold);
                 rtbClientDetails.SelectionColor = Color.DarkRed;
-                rtbClientDetails.AppendText("🔄 Top Running Processes:\n");
+                rtbClientDetails.AppendText(" 🔄 Top Running Processes:\n");
                 rtbClientDetails.SelectionFont = new Font("Consolas", 8);
                 rtbClientDetails.SelectionColor = Color.Black;
                 foreach (var proc in activity.RunningProcesses.Take(10))
@@ -274,6 +274,11 @@ namespace WinServer2019
         }
 
         private void lblLog_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void rtbClientDetails_TextChanged(object sender, EventArgs e)
         {
 
         }

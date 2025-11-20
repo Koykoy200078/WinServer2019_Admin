@@ -91,7 +91,7 @@ namespace WinServer2019
             this.lvClients.HideSelection = false;
             this.lvClients.Location = new System.Drawing.Point(20, 90);
             this.lvClients.Name = "lvClients";
-            this.lvClients.Size = new System.Drawing.Size(1526, 705);
+            this.lvClients.Size = new System.Drawing.Size(1495, 705);
             this.lvClients.TabIndex = 3;
             this.lvClients.UseCompatibleStateImageBehavior = false;
             this.lvClients.View = System.Windows.Forms.View.Details;
@@ -116,16 +116,16 @@ namespace WinServer2019
             this.rtbActivityLog.Location = new System.Drawing.Point(20, 822);
             this.rtbActivityLog.Name = "rtbActivityLog";
             this.rtbActivityLog.ReadOnly = true;
-            this.rtbActivityLog.Size = new System.Drawing.Size(1526, 180);
+            this.rtbActivityLog.Size = new System.Drawing.Size(1495, 180);
             this.rtbActivityLog.TabIndex = 5;
             this.rtbActivityLog.Text = "";
             // 
             // lblDetails
             // 
             this.lblDetails.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
-            this.lblDetails.Location = new System.Drawing.Point(1552, 60);
+            this.lblDetails.Location = new System.Drawing.Point(1521, 60);
             this.lblDetails.Name = "lblDetails";
-            this.lblDetails.Size = new System.Drawing.Size(110, 25);
+            this.lblDetails.Size = new System.Drawing.Size(141, 25);
             this.lblDetails.TabIndex = 6;
             this.lblDetails.Text = "Client Details:";
             // 
@@ -134,9 +134,9 @@ namespace WinServer2019
             this.panelDetails.BackColor = System.Drawing.Color.White;
             this.panelDetails.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.panelDetails.Controls.Add(this.rtbClientDetails);
-            this.panelDetails.Location = new System.Drawing.Point(1552, 90);
+            this.panelDetails.Location = new System.Drawing.Point(1521, 90);
             this.panelDetails.Name = "panelDetails";
-            this.panelDetails.Size = new System.Drawing.Size(340, 912);
+            this.panelDetails.Size = new System.Drawing.Size(371, 912);
             this.panelDetails.TabIndex = 7;
             // 
             // rtbClientDetails
@@ -144,12 +144,13 @@ namespace WinServer2019
             this.rtbClientDetails.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
             this.rtbClientDetails.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.rtbClientDetails.Font = new System.Drawing.Font("Segoe UI", 9F);
-            this.rtbClientDetails.Location = new System.Drawing.Point(-1, -3);
+            this.rtbClientDetails.Location = new System.Drawing.Point(3, 3);
             this.rtbClientDetails.Name = "rtbClientDetails";
             this.rtbClientDetails.ReadOnly = true;
-            this.rtbClientDetails.Size = new System.Drawing.Size(336, 914);
+            this.rtbClientDetails.Size = new System.Drawing.Size(363, 904);
             this.rtbClientDetails.TabIndex = 0;
             this.rtbClientDetails.Text = "";
+            this.rtbClientDetails.TextChanged += new System.EventHandler(this.rtbClientDetails_TextChanged);
             // 
             // MonitoringForm
             // 
