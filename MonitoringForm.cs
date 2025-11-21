@@ -336,9 +336,15 @@ namespace WinServer2019
             if (messageDialog.ShowDialog() == DialogResult.OK && !string.IsNullOrWhiteSpace(txtMessage.Text))
             {
                 string message = txtMessage.Text.Trim();
-                // TODO: Send command to server to forward to client
-                MessageBox.Show($"Message will be sent to {activity.PCName}:\n\n{message}\n\n(Command sending not yet implemented)", 
-                               "Message Preview", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                var command = new ServerCommand
+                {
+                    CommandType = "message",
+                    MessageText = message,
+                    Duration = 5 // Display for 5 seconds
+                };
+                monitoringServer.SendCommand(activity.PCName, command);
+                MessageBox.Show($"Message queued for {activity.PCName}", 
+                               "Message Sent", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
@@ -352,9 +358,15 @@ namespace WinServer2019
 
             if (result == DialogResult.Yes)
             {
-                // TODO: Send freeze command to server to forward to client
-                MessageBox.Show($"Freeze command will be sent to {activity.PCName}\n\n(Command sending not yet implemented)", 
-                               "Command Preview", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                var command = new ServerCommand
+                {
+                    CommandType = "freeze",
+                    MessageText = "⚠ ATTENTION: This screen has been frozen by the administrator for 3 seconds.",
+                    Duration = 3
+                };
+                monitoringServer.SendCommand(activity.PCName, command);
+                MessageBox.Show($"Freeze command queued for {activity.PCName}", 
+                               "Command Sent", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 

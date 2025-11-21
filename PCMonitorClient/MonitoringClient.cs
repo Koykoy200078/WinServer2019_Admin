@@ -4,10 +4,18 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using Newtonsoft.Json;
 
 namespace PCMonitorClient
 {
+    public class ServerCommand
+    {
+        public string CommandType { get; set; }
+        public string MessageText { get; set; }
+        public int Duration { get; set; }
+    }
+
     public class ClientActivity
     {
         public string PCName { get; set; }
@@ -147,14 +155,60 @@ namespace PCMonitorClient
                 await stream.WriteAsync(data, 0, data.Length);
                 await stream.FlushAsync();
 
-                // Wait for acknowledgment
-                byte[] buffer = new byte[1024];
-                await stream.ReadAsync(buffer, 0, buffer.Length);
+                // Wait for server response (command or ACK)
+                byte[] buffer = new byte[4096];
+                int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+                string response = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+
+                // Check if response is a command (not just ACK)
+                if (response != "ACK")
+                {
+                    try
+                    {
+                        var command = JsonConvert.DeserializeObject<ServerCommand>(response);
+                        if (command != null)
+                        {
+                            HandleCommand(command);
+                        }
+                    }
+                    catch { } // Ignore JSON parsing errors
+                }
             }
             catch
             {
                 Disconnect();
                 throw;
+            }
+        }
+
+        private void HandleCommand(ServerCommand command)
+        {
+            try
+            {
+                if (command.CommandType == "message" || command.CommandType == "freeze")
+                {
+                    // Run on a separate thread to avoid blocking the monitoring loop
+                    System.Threading.Thread messageThread = new System.Threading.Thread(() =>
+                    {
+                        try
+                        {
+                            var messageForm = new MessageDisplayForm(command.MessageText, command.Duration);
+                            messageForm.ShowDialog();
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Error showing message: {ex.Message}");
+                        }
+                    });
+                    messageThread.SetApartmentState(System.Threading.ApartmentState.STA);
+                    messageThread.IsBackground = true;
+                    messageThread.Start();
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't crash the client
+                System.Diagnostics.Debug.WriteLine($"Error handling command: {ex.Message}");
             }
         }
 

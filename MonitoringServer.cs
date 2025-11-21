@@ -11,6 +11,13 @@ using Newtonsoft.Json;
 
 namespace WinServer2019
 {
+    public class ServerCommand
+    {
+        public string CommandType { get; set; } // "message", "freeze"
+        public string MessageText { get; set; }
+        public int Duration { get; set; } // Duration in seconds
+    }
+
     public class ClientActivity
     {
         public string PCName { get; set; }
@@ -25,13 +32,15 @@ namespace WinServer2019
         public List<string> RecentActivities { get; set; }
         public bool IsActive { get; set; }
         public byte[] ScreenshotData { get; set; }
+        public ServerCommand PendingCommand { get; set; }
     }
 
     public class MonitoringServer : IDisposable
     {
         private TcpListener listener;
         private CancellationTokenSource cancellationTokenSource;
-        private ConcurrentDictionary<string, ClientActivity> connectedClients;
+        private readonly ConcurrentDictionary<string, ClientActivity> clientActivities;
+        private readonly ConcurrentDictionary<string, Queue<ServerCommand>> commandQueues;
         private readonly int port = 8888;
         private bool isRunning = false;
 
@@ -41,7 +50,8 @@ namespace WinServer2019
 
         public MonitoringServer()
         {
-            connectedClients = new ConcurrentDictionary<string, ClientActivity>();
+            clientActivities = new ConcurrentDictionary<string, ClientActivity>();
+            commandQueues = new ConcurrentDictionary<string, Queue<ServerCommand>>();
         }
 
         public void Start()
@@ -79,7 +89,7 @@ namespace WinServer2019
                 isRunning = false;
                 cancellationTokenSource?.Cancel();
                 listener?.Stop();
-                connectedClients.Clear();
+                clientActivities.Clear();
                 OnLogMessage?.Invoke("Monitoring server stopped");
             }
             catch (Exception ex)
@@ -168,13 +178,36 @@ namespace WinServer2019
                         activity.LastUpdate = DateTime.Now;
                         activity.IsActive = true;
 
-                        connectedClients.AddOrUpdate(clientId, activity, (key, old) => activity);
+                        clientActivities.AddOrUpdate(clientId, activity, (key, old) => activity);
                         OnClientUpdate?.Invoke(activity);
                     }
 
-                    // Send acknowledgment
-                    byte[] ack = Encoding.UTF8.GetBytes("ACK");
-                    await stream.WriteAsync(ack, 0, ack.Length, token);
+                    // Check for pending commands and send them, otherwise send ACK
+                    ServerCommand pendingCommand = null;
+                    if (commandQueues.TryGetValue(clientId, out var queue))
+                    {
+                        lock (queue)
+                        {
+                            if (queue.Count > 0)
+                            {
+                                pendingCommand = queue.Dequeue();
+                            }
+                        }
+                    }
+
+                    string response;
+                    if (pendingCommand != null)
+                    {
+                        response = JsonConvert.SerializeObject(pendingCommand);
+                    }
+                    else
+                    {
+                        response = "ACK";
+                    }
+
+                    byte[] responseData = Encoding.UTF8.GetBytes(response);
+                    await stream.WriteAsync(responseData, 0, responseData.Length, token);
+                    await stream.FlushAsync();
                 }
             }
             catch (Exception ex)
@@ -188,7 +221,7 @@ namespace WinServer2019
             {
                 if (clientId != null)
                 {
-                    connectedClients.TryRemove(clientId, out _);
+                    clientActivities.TryRemove(clientId, out _);
                     OnClientDisconnected?.Invoke(clientId);
                 }
                 stream?.Dispose();
@@ -205,14 +238,14 @@ namespace WinServer2019
                     await Task.Delay(5000, token);
 
                     var now = DateTime.Now;
-                    var inactiveClients = connectedClients
+                    var inactiveClients = clientActivities
                         .Where(c => (now - c.Value.LastUpdate).TotalSeconds > 30)
                         .Select(c => c.Key)
                         .ToList();
 
                     foreach (var clientId in inactiveClients)
                     {
-                        if (connectedClients.TryRemove(clientId, out _))
+                        if (clientActivities.TryRemove(clientId, out _))
                         {
                             OnClientDisconnected?.Invoke(clientId);
                         }
@@ -231,17 +264,27 @@ namespace WinServer2019
 
         public List<ClientActivity> GetConnectedClients()
         {
-            return connectedClients.Values.ToList();
+            return clientActivities.Values.ToList();
         }
 
         public ConcurrentDictionary<string, ClientActivity> GetConnectedClientsDictionary()
         {
-            return connectedClients;
+            return clientActivities;
+        }
+
+        public void SendCommand(string pcName, ServerCommand command)
+        {
+            var queue = commandQueues.GetOrAdd(pcName, _ => new Queue<ServerCommand>());
+            lock (queue)
+            {
+                queue.Enqueue(command);
+            }
+            OnLogMessage?.Invoke($"Command queued for {pcName}: {command.CommandType}");
         }
 
         public ClientActivity GetClientActivity(string pcName)
         {
-            connectedClients.TryGetValue(pcName, out var activity);
+            clientActivities.TryGetValue(pcName, out var activity);
             return activity;
         }
 

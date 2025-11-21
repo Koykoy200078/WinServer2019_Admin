@@ -62,6 +62,9 @@
         <Compile Include="Program.cs" />
         <Compile Include="MonitoringClient.cs" />
         <Compile Include="ActivityMonitor.cs" />
+        <Compile Include="MessageDisplayForm.cs">
+            <SubType>Form</SubType>
+        </Compile>
         <Compile Include="Properties\AssemblyInfo.cs" />
     </ItemGroup>
     <ItemGroup>
