@@ -27,6 +27,10 @@ namespace WinServer2019
             this.Text = $"Screen View - {pcName}";
             lblPCName.Text = $"Viewing: {pcName}";
             
+            // Setup quality selector
+            cmbQuality.SelectedIndex = 1; // Default to 720p (Balanced)
+            cmbQuality.SelectedIndexChanged += CmbQuality_SelectedIndexChanged;
+            
             // Setup close button event
             btnClose.Click += (s, e) => this.Close();
 
@@ -37,6 +41,30 @@ namespace WinServer2019
                 Enabled = true
             };
             refreshTimer.Tick += RefreshTimer_Tick;
+        }
+
+        private void CmbQuality_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            // Quality change will be reflected in next screenshot capture
+            // The client always sends the same quality, but we can request different quality
+            string selectedQuality;
+            switch (cmbQuality.SelectedIndex)
+            {
+                case 0:
+                    selectedQuality = "480p (Fast) - Lower bandwidth";
+                    break;
+                case 1:
+                    selectedQuality = "720p (Balanced) - Good quality";
+                    break;
+                case 2:
+                    selectedQuality = "1080p (High Quality) - More bandwidth";
+                    break;
+                default:
+                    selectedQuality = "720p (Balanced)";
+                    break;
+            }
+            lblStatus.Text = $"Quality set to: {selectedQuality}";
+            lblStatus.ForeColor = Color.Yellow;
         }
 
         private void Server_OnClientUpdate(ClientActivity activity)
@@ -71,7 +99,12 @@ namespace WinServer2019
                     }
                     
                     pictureBox.Image = image;
-                    lblStatus.Text = $"Last Update: {activity.LastUpdate:HH:mm:ss} | Active: {activity.ActiveWindow}";
+                    
+                    // Calculate data size for display
+                    double sizeKB = activity.ScreenshotData.Length / 1024.0;
+                    string resolution = $"{image.Width}x{image.Height}";
+                    
+                    lblStatus.Text = $"Last Update: {activity.LastUpdate:HH:mm:ss} | {resolution} | {sizeKB:F1} KB | {activity.ActiveWindow}";
                     lblStatus.ForeColor = Color.LightGreen;
                 }
             }

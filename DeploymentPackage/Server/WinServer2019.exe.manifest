@@ -66,14 +66,14 @@
     </dependentAssembly>
   </dependency>
   <dependency>
-    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="WinServer2019.exe" size="134056">
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="WinServer2019.exe" size="139176">
       <assemblyIdentity name="WinServer2019" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
       <hash>
         <dsig:Transforms>
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>0LHWAn1n2RA9f60Vfi7l4Qj5WKpFvLPoCzSVSdExy5Q=</dsig:DigestValue>
+        <dsig:DigestValue>zwMo/dipxmRVa2PFaz6k1QWEVJWFcr1mwFC2KTemgdA=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>

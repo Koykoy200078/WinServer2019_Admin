@@ -51,9 +51,12 @@ $targetPCs = @(
 
 ## 🎥 Screen Viewing Features
 
-- **Real-time screen capture** every 1 second
-- **Compressed images** (30% quality) to minimize bandwidth
-- **Resized display** (50% scale) for performance
+- **Real-time screen capture** every 1-2 seconds
+- **Quality selector:** 480p (Fast), 720p (Balanced), 1080p (High Quality)
+- **Default:** 720p @ 50% JPEG quality for optimal balance
+- **Optimized network:** 256 KB buffers, TCP_NODELAY enabled
+- **High-quality scaling:** Sharp, clear images with proper interpolation
+- **Real-time stats:** Shows resolution, transfer size, and FPS
 - See exactly what users are doing!
 
 ## 🔧 Configuration
@@ -61,7 +64,17 @@ $targetPCs = @(
 Default settings:
 - Server Port: **8888**
 - Update Interval: **2 seconds**
-- Screenshot Quality: **30%** (adjustable in code)
+- Screenshot Quality: **50%** (720p balanced mode)
+- Network Buffer: **256 KB** (optimized for speed)
+
+## ⚡ Performance
+
+Expected bandwidth per client:
+- **480p:**  ~15-25 KB/frame  (Fast, low bandwidth)
+- **720p:**  ~30-50 KB/frame  (Balanced) ⭐ Default
+- **1080p:** ~60-100 KB/frame (High quality)
+
+With 35 clients @ 720p: ~2-3 MB/sec total bandwidth
 
 ## 🔥 Firewall Rules
 
@@ -93,8 +106,15 @@ Automatically configured by deployment script:
 
 **Screen not showing?**
 1. Ensure client has latest version
-2. Check network bandwidth (screenshots are compressed but still use ~50-100KB/sec)
+2. Check network bandwidth (720p uses ~30-50KB/sec per client)
 3. Verify no antivirus blocking screen capture
+4. Try lower quality (480p) if network is slow
+
+**Pixelated or blurry screen?**
+1. Client defaults to 720p @ 50% quality (balanced)
+2. Quality selector in screen viewer (top bar)
+3. Higher quality = more bandwidth needed
+4. Ensure TCP_NODELAY is working (check firewall)
 
 **Client not starting?**
 1. Check scheduled task: Get-ScheduledTask -TaskName "PCMonitorClient"

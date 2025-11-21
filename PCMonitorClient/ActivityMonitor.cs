@@ -180,7 +180,7 @@ namespace PCMonitorClient
             return $"{len:F0} {sizes[order]}";
         }
 
-        public byte[] CaptureScreenshot(int quality = 30)
+        public byte[] CaptureScreenshot(int quality = 30, string resolution = "720p")
         {
             try
             {
@@ -193,15 +193,52 @@ namespace PCMonitorClient
                         graphics.CopyFromScreen(bounds.Location, Point.Empty, bounds.Size);
                     }
 
-                    // Resize to reduce bandwidth (scale to 50%)
-                    int newWidth = bounds.Width / 2;
-                    int newHeight = bounds.Height / 2;
-                    using (var resized = new Bitmap(newWidth, newHeight))
+                    // Calculate target resolution
+                    int targetWidth, targetHeight;
+                    switch (resolution.ToLower())
+                    {
+                        case "1080p":
+                            targetWidth = 1920;
+                            targetHeight = 1080;
+                            break;
+                        case "720p":
+                            targetWidth = 1280;
+                            targetHeight = 720;
+                            break;
+                        case "480p":
+                            targetWidth = 854;
+                            targetHeight = 480;
+                            break;
+                        default: // Original resolution, scale to 50%
+                            targetWidth = bounds.Width / 2;
+                            targetHeight = bounds.Height / 2;
+                            break;
+                    }
+
+                    // Maintain aspect ratio
+                    double aspectRatio = (double)bounds.Width / bounds.Height;
+                    if (resolution != "original")
+                    {
+                        if (aspectRatio > (double)targetWidth / targetHeight)
+                        {
+                            targetHeight = (int)(targetWidth / aspectRatio);
+                        }
+                        else
+                        {
+                            targetWidth = (int)(targetHeight * aspectRatio);
+                        }
+                    }
+
+                    using (var resized = new Bitmap(targetWidth, targetHeight))
                     {
                         using (var graphics = Graphics.FromImage(resized))
                         {
+                            // Use high quality for better clarity at lower resolutions
                             graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-                            graphics.DrawImage(bitmap, 0, 0, newWidth, newHeight);
+                            graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                            graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                            graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
+                            graphics.DrawImage(bitmap, 0, 0, targetWidth, targetHeight);
                         }
 
                         // Compress as JPEG with specified quality

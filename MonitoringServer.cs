@@ -95,6 +95,12 @@ namespace WinServer2019
                 try
                 {
                     var client = await listener.AcceptTcpClientAsync();
+                    
+                    // Optimize TCP settings for better performance
+                    client.ReceiveBufferSize = 256 * 1024; // 256 KB
+                    client.SendBufferSize = 256 * 1024; // 256 KB
+                    client.NoDelay = true; // Disable Nagle's algorithm
+                    
                     _ = Task.Run(() => HandleClientAsync(client, token), token);
                 }
                 catch (ObjectDisposedException)
@@ -119,6 +125,8 @@ namespace WinServer2019
             try
             {
                 stream = client.GetStream();
+                stream.ReadTimeout = 30000; // 30 second timeout
+                stream.WriteTimeout = 10000; // 10 second timeout
 
                 while (!token.IsCancellationRequested && client.Connected)
                 {

@@ -13,6 +13,8 @@ namespace WinServer2019
         private System.Windows.Forms.Button btnRefresh;
         private System.Windows.Forms.Button btnClose;
         private System.Windows.Forms.PictureBox pictureBox;
+        private System.Windows.Forms.Label lblQuality;
+        private System.Windows.Forms.ComboBox cmbQuality;
 
         /// <summary>
         /// Clean up any resources being used.
@@ -36,10 +38,12 @@ namespace WinServer2019
         private void InitializeComponent()
         {
             this.controlPanel = new System.Windows.Forms.Panel();
-            this.lblPCName = new System.Windows.Forms.Label();
-            this.lblStatus = new System.Windows.Forms.Label();
-            this.btnRefresh = new System.Windows.Forms.Button();
             this.btnClose = new System.Windows.Forms.Button();
+            this.btnRefresh = new System.Windows.Forms.Button();
+            this.cmbQuality = new System.Windows.Forms.ComboBox();
+            this.lblQuality = new System.Windows.Forms.Label();
+            this.lblStatus = new System.Windows.Forms.Label();
+            this.lblPCName = new System.Windows.Forms.Label();
             this.pictureBox = new System.Windows.Forms.PictureBox();
             this.controlPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox)).BeginInit();
@@ -50,6 +54,8 @@ namespace WinServer2019
             this.controlPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
             this.controlPanel.Controls.Add(this.btnClose);
             this.controlPanel.Controls.Add(this.btnRefresh);
+            this.controlPanel.Controls.Add(this.cmbQuality);
+            this.controlPanel.Controls.Add(this.lblQuality);
             this.controlPanel.Controls.Add(this.lblStatus);
             this.controlPanel.Controls.Add(this.lblPCName);
             this.controlPanel.Dock = System.Windows.Forms.DockStyle.Top;
@@ -57,6 +63,72 @@ namespace WinServer2019
             this.controlPanel.Name = "controlPanel";
             this.controlPanel.Size = new System.Drawing.Size(1024, 50);
             this.controlPanel.TabIndex = 0;
+            // 
+            // btnClose
+            // 
+            this.btnClose.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(50)))), ((int)(((byte)(50)))));
+            this.btnClose.FlatAppearance.BorderSize = 0;
+            this.btnClose.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnClose.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.btnClose.ForeColor = System.Drawing.Color.White;
+            this.btnClose.Location = new System.Drawing.Point(930, 10);
+            this.btnClose.Name = "btnClose";
+            this.btnClose.Size = new System.Drawing.Size(80, 30);
+            this.btnClose.TabIndex = 3;
+            this.btnClose.Text = "Close";
+            this.btnClose.UseVisualStyleBackColor = false;
+            // 
+            // btnRefresh
+            // 
+            this.btnRefresh.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(120)))), ((int)(((byte)(215)))));
+            this.btnRefresh.FlatAppearance.BorderSize = 0;
+            this.btnRefresh.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnRefresh.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.btnRefresh.ForeColor = System.Drawing.Color.White;
+            this.btnRefresh.Location = new System.Drawing.Point(820, 10);
+            this.btnRefresh.Name = "btnRefresh";
+            this.btnRefresh.Size = new System.Drawing.Size(100, 30);
+            this.btnRefresh.TabIndex = 2;
+            this.btnRefresh.Text = "Refresh";
+            this.btnRefresh.UseVisualStyleBackColor = false;
+            this.btnRefresh.Click += new System.EventHandler(this.BtnRefresh_Click);
+            // 
+            // cmbQuality
+            // 
+            this.cmbQuality.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            this.cmbQuality.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbQuality.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.cmbQuality.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.cmbQuality.ForeColor = System.Drawing.Color.White;
+            this.cmbQuality.FormattingEnabled = true;
+            this.cmbQuality.Items.AddRange(new object[] {
+            "480p (Fast)",
+            "720p (Balanced)",
+            "1080p (High Quality)"});
+            this.cmbQuality.Location = new System.Drawing.Point(670, 13);
+            this.cmbQuality.Name = "cmbQuality";
+            this.cmbQuality.Size = new System.Drawing.Size(140, 23);
+            this.cmbQuality.TabIndex = 4;
+            // 
+            // lblQuality
+            // 
+            this.lblQuality.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblQuality.ForeColor = System.Drawing.Color.White;
+            this.lblQuality.Location = new System.Drawing.Point(600, 16);
+            this.lblQuality.Name = "lblQuality";
+            this.lblQuality.Size = new System.Drawing.Size(60, 20);
+            this.lblQuality.TabIndex = 5;
+            this.lblQuality.Text = "Quality:";
+            // 
+            // lblStatus
+            // 
+            this.lblStatus.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.lblStatus.ForeColor = System.Drawing.Color.LightGray;
+            this.lblStatus.Location = new System.Drawing.Point(320, 15);
+            this.lblStatus.Name = "lblStatus";
+            this.lblStatus.Size = new System.Drawing.Size(270, 20);
+            this.lblStatus.TabIndex = 1;
+            this.lblStatus.Text = "Waiting for screen data...";
             // 
             // lblPCName
             // 
@@ -67,45 +139,6 @@ namespace WinServer2019
             this.lblPCName.Size = new System.Drawing.Size(300, 20);
             this.lblPCName.TabIndex = 0;
             this.lblPCName.Text = "Viewing: PC-1";
-            // 
-            // lblStatus
-            // 
-            this.lblStatus.Font = new System.Drawing.Font("Segoe UI", 9F);
-            this.lblStatus.ForeColor = System.Drawing.Color.LightGray;
-            this.lblStatus.Location = new System.Drawing.Point(320, 15);
-            this.lblStatus.Name = "lblStatus";
-            this.lblStatus.Size = new System.Drawing.Size(400, 20);
-            this.lblStatus.TabIndex = 1;
-            this.lblStatus.Text = "Waiting for screen data...";
-            // 
-            // btnRefresh
-            // 
-            this.btnRefresh.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(120)))), ((int)(((byte)(215)))));
-            this.btnRefresh.FlatAppearance.BorderSize = 0;
-            this.btnRefresh.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnRefresh.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
-            this.btnRefresh.ForeColor = System.Drawing.Color.White;
-            this.btnRefresh.Location = new System.Drawing.Point(730, 10);
-            this.btnRefresh.Name = "btnRefresh";
-            this.btnRefresh.Size = new System.Drawing.Size(100, 30);
-            this.btnRefresh.TabIndex = 2;
-            this.btnRefresh.Text = "? Refresh";
-            this.btnRefresh.UseVisualStyleBackColor = false;
-            this.btnRefresh.Click += new System.EventHandler(this.BtnRefresh_Click);
-            // 
-            // btnClose
-            // 
-            this.btnClose.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(50)))), ((int)(((byte)(50)))));
-            this.btnClose.FlatAppearance.BorderSize = 0;
-            this.btnClose.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnClose.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
-            this.btnClose.ForeColor = System.Drawing.Color.White;
-            this.btnClose.Location = new System.Drawing.Point(840, 10);
-            this.btnClose.Name = "btnClose";
-            this.btnClose.Size = new System.Drawing.Size(80, 30);
-            this.btnClose.TabIndex = 3;
-            this.btnClose.Text = "? Close";
-            this.btnClose.UseVisualStyleBackColor = false;
             // 
             // pictureBox
             // 

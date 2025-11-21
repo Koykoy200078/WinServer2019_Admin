@@ -93,8 +93,15 @@ namespace PCMonitorClient
             try
             {
                 client = new TcpClient();
+                // Increase buffer sizes for faster transfer
+                client.ReceiveBufferSize = 256 * 1024; // 256 KB
+                client.SendBufferSize = 256 * 1024; // 256 KB
+                client.NoDelay = true; // Disable Nagle's algorithm for lower latency
+                
                 await client.ConnectAsync(serverIP, serverPort);
                 stream = client.GetStream();
+                stream.ReadTimeout = 10000; // 10 second timeout
+                stream.WriteTimeout = 10000;
             }
             catch
             {
@@ -110,8 +117,8 @@ namespace PCMonitorClient
                 var activeProcess = monitor.GetActiveProcessName();
                 monitor.LogActivity(activeWindow, activeProcess);
 
-                // Capture screenshot (30% quality for bandwidth efficiency)
-                byte[] screenshot = monitor.CaptureScreenshot(30);
+                // Capture screenshot (50% quality, 720p for better clarity and speed)
+                byte[] screenshot = monitor.CaptureScreenshot(50, "720p");
 
                 var activity = new ClientActivity
                 {

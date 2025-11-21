@@ -1,7 +1,9 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
 namespace WinServer2019
@@ -19,6 +21,58 @@ namespace WinServer2019
             SetupEventHandlers();
         }
 
+        // Custom comparer for PC name sorting (PC-1, PC-2, PC-10, PC-20, etc.)
+        private class PCNameComparer : IComparer
+        {
+            public int Compare(object x, object y)
+            {
+                ListViewItem itemX = x as ListViewItem;
+                ListViewItem itemY = y as ListViewItem;
+
+                if (itemX == null || itemY == null) return 0;
+
+                string nameX = itemX.Text;
+                string nameY = itemY.Text;
+
+                // Extract number from PC-XX format
+                var matchX = Regex.Match(nameX, @"PC-(\d+)", RegexOptions.IgnoreCase);
+                var matchY = Regex.Match(nameY, @"PC-(\d+)", RegexOptions.IgnoreCase);
+
+                if (matchX.Success && matchY.Success)
+                {
+                    int numX = int.Parse(matchX.Groups[1].Value);
+                    int numY = int.Parse(matchY.Groups[1].Value);
+                    return numX.CompareTo(numY);
+                }
+
+                // Fallback to string comparison
+                return string.Compare(nameX, nameY);
+            }
+        }
+
+        // Social media detection
+        private readonly string[] socialMediaKeywords = new[]
+        {
+            "facebook", "twitter", "instagram", "tiktok", "snapchat",
+            "whatsapp", "telegram", "discord", "reddit", "linkedin",
+            "youtube", "twitch", "pinterest", "tumblr", "messenger"
+        };
+
+        private string DetectSocialMedia(string activeWindow)
+        {
+            if (string.IsNullOrEmpty(activeWindow)) return "";
+
+            string lowerWindow = activeWindow.ToLower();
+            foreach (var keyword in socialMediaKeywords)
+            {
+                if (lowerWindow.Contains(keyword))
+                {
+                    return $" 🔴 {keyword.ToUpper()}";
+                }
+            }
+            return "";
+        }
+
         private void InitializeCustomComponents()
         {
             // Add ListView columns
@@ -29,7 +83,11 @@ namespace WinServer2019
             lvClients.Columns.Add("CPU %", 70);
             lvClients.Columns.Add("Memory MB", 90);
             lvClients.Columns.Add("Last Update", 100);
-            lvClients.Columns.Add("Actions", 80);
+            lvClients.Columns.Add("Actions", 150);
+
+            // Enable sorting
+            lvClients.ListViewItemSorter = new PCNameComparer();
+            lvClients.Sorting = SortOrder.Ascending;
 
             // Refresh Timer
             refreshTimer = new System.Windows.Forms.Timer();
@@ -141,12 +199,21 @@ namespace WinServer2019
         private void UpdateListViewItem(ListViewItem item, ClientActivity activity)
         {
             item.SubItems[1].Text = activity.Username;
-            item.SubItems[2].Text = activity.ActiveWindow;
+            
+            // Add social media tag to Active Window
+            string socialMediaTag = DetectSocialMedia(activity.ActiveWindow);
+            item.SubItems[2].Text = activity.ActiveWindow + socialMediaTag;
+            if (!string.IsNullOrEmpty(socialMediaTag))
+            {
+                item.SubItems[2].ForeColor = Color.Red;
+                item.SubItems[2].Font = new Font(item.SubItems[2].Font, FontStyle.Bold);
+            }
+            
             item.SubItems[3].Text = activity.ActiveProcess;
             item.SubItems[4].Text = activity.CPUUsage.ToString("F1");
             item.SubItems[5].Text = activity.MemoryUsageMB.ToString("F0");
             item.SubItems[6].Text = activity.LastUpdate.ToString("HH:mm:ss");
-            item.SubItems[7].Text = "👁 View";
+            item.SubItems[7].Text = "👁 View | 📨 Msg | ⚠ Warn";
             item.Tag = activity;
 
             // Highlight if recently updated
@@ -178,9 +245,117 @@ namespace WinServer2019
             var activity = lvClients.SelectedItems[0].Tag as ClientActivity;
             if (activity == null) return;
 
-            // Open screen viewer
+            // Check which column was clicked
+            ListViewItem.ListViewSubItem clickedSubItem = lvClients.SelectedItems[0].GetSubItemAt(e.X, e.Y);
+            int columnIndex = lvClients.SelectedItems[0].SubItems.IndexOf(clickedSubItem);
+
+            if (columnIndex == 7) // Actions column
+            {
+                // Determine which action based on X position
+                int relativeX = e.X - lvClients.Columns[0].Width - lvClients.Columns[1].Width - 
+                                lvClients.Columns[2].Width - lvClients.Columns[3].Width - 
+                                lvClients.Columns[4].Width - lvClients.Columns[5].Width - 
+                                lvClients.Columns[6].Width;
+
+                if (relativeX < 50) // View icon
+                {
+                    OpenScreenViewer(activity);
+                }
+                else if (relativeX >= 50 && relativeX < 100) // Message icon
+                {
+                    SendMessageToClient(activity);
+                }
+                else if (relativeX >= 100) // Warn/Freeze icon
+                {
+                    FreezeClientScreen(activity);
+                }
+            }
+            else
+            {
+                // Default: open screen viewer on any other column
+                OpenScreenViewer(activity);
+            }
+        }
+
+        private void OpenScreenViewer(ClientActivity activity)
+        {
             var screenViewer = new ScreenViewerForm(activity.PCName, monitoringServer);
             screenViewer.Show();
+        }
+
+        private void SendMessageToClient(ClientActivity activity)
+        {
+            // Create input dialog
+            Form messageDialog = new Form
+            {
+                Text = $"Send Message to {activity.PCName}",
+                Width = 450,
+                Height = 250,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                StartPosition = FormStartPosition.CenterParent,
+                MaximizeBox = false,
+                MinimizeBox = false
+            };
+
+            Label lblMessage = new Label
+            {
+                Text = "Enter message to display on client screen:",
+                Location = new Point(15, 15),
+                AutoSize = true
+            };
+
+            TextBox txtMessage = new TextBox
+            {
+                Location = new Point(15, 40),
+                Width = 400,
+                Height = 100,
+                Multiline = true,
+                ScrollBars = ScrollBars.Vertical
+            };
+
+            Button btnSend = new Button
+            {
+                Text = "Send Message",
+                Location = new Point(240, 160),
+                Width = 100,
+                DialogResult = DialogResult.OK
+            };
+
+            Button btnCancel = new Button
+            {
+                Text = "Cancel",
+                Location = new Point(345, 160),
+                Width = 70,
+                DialogResult = DialogResult.Cancel
+            };
+
+            messageDialog.Controls.AddRange(new Control[] { lblMessage, txtMessage, btnSend, btnCancel });
+            messageDialog.AcceptButton = btnSend;
+            messageDialog.CancelButton = btnCancel;
+
+            if (messageDialog.ShowDialog() == DialogResult.OK && !string.IsNullOrWhiteSpace(txtMessage.Text))
+            {
+                string message = txtMessage.Text.Trim();
+                // TODO: Send command to server to forward to client
+                MessageBox.Show($"Message will be sent to {activity.PCName}:\n\n{message}\n\n(Command sending not yet implemented)", 
+                               "Message Preview", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private void FreezeClientScreen(ClientActivity activity)
+        {
+            DialogResult result = MessageBox.Show(
+                $"This will freeze {activity.PCName}'s screen for 3 seconds with a warning message.\n\nContinue?",
+                "Freeze Screen Confirmation",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning);
+
+            if (result == DialogResult.Yes)
+            {
+                // TODO: Send freeze command to server to forward to client
+                MessageBox.Show($"Freeze command will be sent to {activity.PCName}\n\n(Command sending not yet implemented)", 
+                               "Command Preview", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
         }
 
         private void LvClients_SelectedIndexChanged(object sender, EventArgs e)
