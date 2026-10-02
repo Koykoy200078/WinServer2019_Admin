@@ -32,7 +32,7 @@ Lab-administration suite for the CSIT computer lab: domain `csitlab.local`, serv
 - **`Scripts/` is an orphaned gitlink** (mode 160000, no `.gitmodules`): its files aren't versioned and edits never show in `git status`. Tracked copies live in `bin/Debug/Scripts/`, `bin/Release/Scripts/` and `DeploymentPackage/Server/Scripts/` (plus `DeploymentPackage/Scripts/` for the deploy scripts). They drift apart.
 - **Run the repo's `.ps1` files with `pwsh` 7+**: they're UTF-8 without a BOM and use ✓/✗/█/emoji, so Windows PowerShell 5.1 (ANSI code page) fails to parse 12 of the 14 scripts. New scripts should be ASCII-only or UTF-8 *with* a BOM.
 - `Deploy-MonitoringClient.ps1` only works from `DeploymentPackage/Scripts/`; run from the repo root, its client path resolves one folder too high.
-- No `.gitignore`: `bin/`, `obj/`, `.vs/`, `*.csproj.user` and the binaries are tracked, so VS and builds dirty the tree. Stage source files explicitly, and ask before committing regenerated binaries.
+- `.gitignore` covers caches only: `.vs/`, `obj/`, `bin/` (except `bin/<Config>/Scripts/`), and script runtime output (`Scripts/Reports/`, `Scripts/MySQL-Exports-*/`). `DeploymentPackage/` binaries, `packages/` and `*.csproj.user` are still tracked — stage source files explicitly, and ask before committing regenerated binaries.
 - Hardcoded lab admin credentials exist (LoginForm's "default credentials" checkbox, `Main.ps1`, several docs). Don't copy them anywhere new.
 - `Functions/Lab-Monitoring.ps1` (`Start-RealtimeMonitor`, `Get-StudentActivity`, `Start-BrowserSearchMonitor`) is imported by `Main.ps1` but has no menu entry. Guides that cite "option 25/26" are stale.
 

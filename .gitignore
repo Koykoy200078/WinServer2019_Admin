@@ -1,0 +1,21 @@
+# Ignore build/IDE caches only. Scripts stay tracked, including the copies the
+# post-build step writes to bin/<Config>/Scripts/ (see CLAUDE.md).
+
+# Visual Studio / Copilot caches (.suo, layouts, FileContentIndex, CopilotIndices, snapshots)
+.vs/
+
+# Intermediate build caches
+[Oo]bj/
+
+# Build output: ignore everything in bin/<Config>/ except its Scripts/ folder
+**/[Bb]in/*
+!**/[Bb]in/*/
+**/[Bb]in/*/*
+!**/[Bb]in/*/Scripts/
+
+# Runtime output the console scripts write next to themselves (student reports, MySQL dumps)
+**/Scripts/Reports/
+**/Scripts/MySQL-Exports-*/
+
+# Windows Explorer thumbnail cache
+Thumbs.db
