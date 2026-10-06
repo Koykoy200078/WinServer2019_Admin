@@ -1,4 +1,4 @@
-# PC Management Functions
+﻿# PC Management Functions
 # Functions for managing PC status, shutdown, and restart operations
 
 function Get-AllPCStatus {

@@ -1,4 +1,4 @@
-# Remote Client Diagnostics - Run this from the server to diagnose remote PC
+﻿# Remote Client Diagnostics - Run this from the server to diagnose remote PC
 param(
     [string]$PCName = "PC-1.csitlab.local",
     [string]$ServerIP = "192.168.2.45",
@@ -31,8 +31,9 @@ try {
             LastError = $null
         }
         
-        # Check files
-        if (Test-Path "C:\ProgramData\PCMonitor\PCMonitorClient.exe") {
+        # Check files (Program Files primary, ProgramData fallback)
+        $clientExe = if (Test-Path "C:\Program Files\PCMonitor\PCMonitorClient.exe") { "C:\Program Files\PCMonitor\PCMonitorClient.exe" } else { "C:\ProgramData\PCMonitor\PCMonitorClient.exe" }
+        if (Test-Path $clientExe) {
             $diagnostics.FilesExist = $true
         }
         
@@ -85,7 +86,7 @@ try {
             Start-Sleep -Seconds 1
             
             # Start new process
-            $proc = Start-Process -FilePath "C:\ProgramData\PCMonitor\PCMonitorClient.exe" `
+            $proc = Start-Process -FilePath $clientExe `
                                  -ArgumentList "$ServerIP $ServerPort" `
                                  -WindowStyle Hidden `
                                  -PassThru

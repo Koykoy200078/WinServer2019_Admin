@@ -1,4 +1,4 @@
-# Lab Monitoring Functions
+﻿# Lab Monitoring Functions
 # Functions for monitoring student activities in computer lab
 
 function Start-BrowserSearchMonitor {

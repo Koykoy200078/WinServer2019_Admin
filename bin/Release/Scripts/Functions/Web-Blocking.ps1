@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # Web & Protocol Blocking Functions (HOSTS, DNS, TCP/UDP Firewall, Anti-DoH)
 # Computer Laboratory Management System
 # ==============================================================================
@@ -472,7 +472,8 @@ function Invoke-DeepScan {
             $fwDesc = if ($status.FirewallRules -gt 0) { "ACTIVE ($($status.FirewallRules))" } else { "None" }
             $dohDesc = if ($status.DoHDisabled) { "ENFORCED" } else { "Default" }
 
-            Write-Host " [$stateDesc | FW: $fwDesc | DoH: $dohDesc]" -ForegroundColor ($status.HasBlocks ? "Yellow" : "Green")
+            $statusColor = if ($status.HasBlocks) { "Yellow" } else { "Green" }
+            Write-Host " [$stateDesc | FW: $fwDesc | DoH: $dohDesc]" -ForegroundColor $statusColor
 
             $reports += [PSCustomObject]@{
                 PC           = $pc

@@ -1,4 +1,4 @@
-# Helper Functions
+﻿# Helper Functions
 # Common utility functions used across modules
 
 function Test-DomainMembership {

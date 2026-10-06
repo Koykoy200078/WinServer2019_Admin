@@ -1,4 +1,4 @@
-# Block List Manager
+﻿# Block List Manager
 # Quick script to view and manage block lists
 
 $blockListsFolder = Split-Path -Parent $MyInvocation.MyCommand.Path

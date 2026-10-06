@@ -1,4 +1,4 @@
-# Utility Functions
+﻿# Utility Functions
 # Functions for time synchronization, cleanup, and MySQL database exports
 
 function Sync-TimeToAllPCs {

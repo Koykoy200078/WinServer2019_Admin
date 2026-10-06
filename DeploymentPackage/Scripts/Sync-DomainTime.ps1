@@ -1,4 +1,4 @@
-# Time Synchronization Script for Domain PCs
+﻿# Time Synchronization Script for Domain PCs
 # Syncs server time/date/timezone to all PCs (PC-1 to PC-35)
 
 param(

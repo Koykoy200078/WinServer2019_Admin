@@ -118,8 +118,9 @@ Automatically configured by deployment script:
 
 **Client not starting?**
 1. Check scheduled task: `Get-ScheduledTask -TaskName "PCMonitorClient"`
-2. Run manually to see errors: `C:\ProgramData\PCMonitor\PCMonitorClient.exe`
-3. Check event viewer for application errors
+2. Check watchdog task: `Get-ScheduledTask -TaskName "PCMonitorWatchdog"`
+3. Run manually to see errors: `& "C:\Program Files\PCMonitor\PCMonitorClient.exe"`
+4. Check event viewer for application errors
 
 ## 📝 Uninstall
 
@@ -129,11 +130,13 @@ Invoke-Command -ComputerName PC-1 -ScriptBlock {
     # Stop process
     Get-Process -Name "PCMonitorClient" -ErrorAction SilentlyContinue | Stop-Process -Force
     
-    # Remove scheduled task
-    Unregister-ScheduledTask -TaskName "PCMonitorClient" -Confirm:$false
+    # Remove scheduled tasks
+    Unregister-ScheduledTask -TaskName "PCMonitorClient" -Confirm:$false -ErrorAction SilentlyContinue
+    Unregister-ScheduledTask -TaskName "PCMonitorWatchdog" -Confirm:$false -ErrorAction SilentlyContinue
     
     # Remove files
-    Remove-Item "C:\ProgramData\PCMonitor" -Recurse -Force
+    Remove-Item "C:\Program Files\PCMonitor" -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item "C:\ProgramData\PCMonitor" -Recurse -Force -ErrorAction SilentlyContinue
 }
 ```
 

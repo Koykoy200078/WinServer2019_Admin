@@ -1,4 +1,4 @@
-# PC Monitoring System - Auto Deployment Script
+﻿# PC Monitoring System - Auto Deployment Script
 # This script deploys the client monitoring software to all lab PCs
 
 param(
@@ -54,7 +54,7 @@ $networkShare = "\\$ServerIP\Sharing\PCMonitor"
 if (-not (Test-Path $networkShare -ErrorAction SilentlyContinue) -and (Test-Path "F:\Sharing\PCMonitor")) {
     $networkShare = "F:\Sharing\PCMonitor"
 }
-$targetFolder = "C:\ProgramData\PCMonitor"
+$targetFolder = "C:\Program Files\PCMonitor"
 
 # Verify client files exist
 if (-not $clientPath -or -not (Test-Path $clientPath)) {
@@ -65,6 +65,7 @@ if (-not $clientPath -or -not (Test-Path $clientPath)) {
 }
 
 Write-Host "Using client files from: $clientPath" -ForegroundColor Gray
+Write-Host "Target installation folder: $targetFolder (Protected System Location)" -ForegroundColor Gray
 Write-Host ""
 
 # Step 1: Copy client to network share
@@ -130,7 +131,8 @@ foreach ($pc in $targets) {
     
     try {
         # Test connectivity by checking admin share access
-        $remotePath = "\\$pc\C$\ProgramData\PCMonitor"
+        $remotePath = "\\$pc\C$\Program Files\PCMonitor"
+        $legacyPath = "\\$pc\C$\ProgramData\PCMonitor"
         $testPath = "\\$pc\C$"
         
         if (-not (Test-Path $testPath -ErrorAction SilentlyContinue)) {
@@ -160,7 +162,15 @@ foreach ($pc in $targets) {
             # Ignore if process not running
         }
 
-        # Create directory if doesn't exist
+        # Clean legacy ProgramData folder if present
+        if (Test-Path $legacyPath) {
+            try {
+                Remove-Item -Path "$legacyPath\*" -Recurse -Force -ErrorAction SilentlyContinue
+                Remove-Item -Path $legacyPath -Recurse -Force -ErrorAction SilentlyContinue
+            } catch { }
+        }
+
+        # Create system directory if doesn't exist
         if (-not (Test-Path $remotePath)) {
             try {
                 New-Item -Path $remotePath -ItemType Directory -Force -ErrorAction Stop | Out-Null
@@ -193,19 +203,23 @@ foreach ($pc in $targets) {
             }
         }
 
-        # Create scheduled task for auto-start
+        # Configure system permissions, logon task, and SYSTEM watchdog task
         $taskParams = $invokeBaseParams.Clone()
         $taskParams["ScriptBlock"] = {
             param($targetFolder, $serverIP, $serverPort)
             
-            # Remove old task if exists
+            # 1. Lock down NTFS permissions (SYSTEM/Admins Full Control, Users Read & Execute)
+            try {
+                & icacls.exe "$targetFolder" /inheritance:d /grant:r "NT AUTHORITY\SYSTEM:(OI)(CI)F" "BUILTIN\Administrators:(OI)(CI)F" "BUILTIN\Users:(OI)(CI)RX" *>$null
+            } catch { }
+
+            # 2. Configure User Session Task (Runs at Logon with full GUI / screen capture access)
             Unregister-ScheduledTask -TaskName "PCMonitorClient" -Confirm:$false -ErrorAction SilentlyContinue
             
-            # Create new task
             $action = New-ScheduledTaskAction -Execute "$targetFolder\PCMonitorClient.exe" `
                                              -Argument "$serverIP $serverPort"
             $trigger = New-ScheduledTaskTrigger -AtLogOn
-            $principal = New-ScheduledTaskPrincipal -GroupId "BUILTIN\Users"
+            $principal = New-ScheduledTaskPrincipal -GroupId "BUILTIN\Users" -RunLevel Highest
             $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries `
                                                      -DontStopIfGoingOnBatteries `
                                                      -StartWhenAvailable `
@@ -217,11 +231,42 @@ foreach ($pc in $targets) {
                                   -Principal $principal `
                                   -Settings $settings `
                                   -Force | Out-Null
+
+            # 3. Configure SYSTEM Watchdog Task (Checks process every 2 mins and restarts if killed)
+            $watchdogScript = @'
+$proc = Get-Process -Name 'PCMonitorClient' -ErrorAction SilentlyContinue
+if (-not $proc) {
+    $explorer = Get-Process -Name 'explorer' -ErrorAction SilentlyContinue
+    if ($explorer) {
+        Start-ScheduledTask -TaskName 'PCMonitorClient' -ErrorAction SilentlyContinue
+    }
+}
+'@
+            $watchdogPath = "$targetFolder\Watchdog.ps1"
+            Set-Content -Path $watchdogPath -Value $watchdogScript -Encoding UTF8 -Force
+
+            Unregister-ScheduledTask -TaskName "PCMonitorWatchdog" -Confirm:$false -ErrorAction SilentlyContinue
             
-            # Start immediately
+            $wdAction = New-ScheduledTaskAction -Execute "powershell.exe" `
+                                               -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$watchdogPath`""
+            $wdTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 2)
+            $wdPrincipal = New-ScheduledTaskPrincipal -UserId "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+            $wdSettings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries `
+                                                       -DontStopIfGoingOnBatteries `
+                                                       -StartWhenAvailable
+            
+            Register-ScheduledTask -TaskName "PCMonitorWatchdog" `
+                                  -Action $wdAction `
+                                  -Trigger $wdTrigger `
+                                  -Principal $wdPrincipal `
+                                  -Settings $wdSettings `
+                                  -Force | Out-Null
+            
+            # 4. Start immediately
+            Start-ScheduledTask -TaskName "PCMonitorClient" -ErrorAction SilentlyContinue
             Start-Process -FilePath "$targetFolder\PCMonitorClient.exe" `
                          -ArgumentList "$serverIP $serverPort" `
-                         -WindowStyle Hidden
+                         -WindowStyle Hidden -ErrorAction SilentlyContinue
             
         }
         $taskParams["ArgumentList"] = @($targetFolder, $ServerIP, $ServerPort)

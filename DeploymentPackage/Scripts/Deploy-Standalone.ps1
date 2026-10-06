@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Deploy PC Monitoring Client to standalone (non-domain) computers
 .DESCRIPTION
@@ -68,6 +68,7 @@ $candidatePaths = @(
     "F:\Sharing\PCMonitor",
     "\\$ServerIP\Sharing\PCMonitor",
     "\\$ServerIP\Sharing\Other\DeploymentPackage\Client",
+    "C:\Program Files\PCMonitor",
     "C:\ProgramData\PCMonitor"
 )
 
@@ -175,19 +176,27 @@ foreach ($pc in $TargetPCs) {
         
         # Copy files to remote PC
         Write-ColorOutput "  → Copying files..." "Gray"
-        $remotePath = "C:\ProgramData\PCMonitor"
+        $remotePath = "C:\Program Files\PCMonitor"
+        $legacyPath = "C:\ProgramData\PCMonitor"
         
         Invoke-Command -Session $session -ScriptBlock {
-            param($path)
+            param($path, $legacy)
             if (Test-Path $path) {
                 # Stop existing client if running
                 Get-Process -Name "PCMonitorClient" -ErrorAction SilentlyContinue | Stop-Process -Force
-                Start-Sleep -Seconds 2
+                Start-Sleep -Seconds 1
+            }
+            if (Test-Path $legacy) {
+                # Clean up legacy ProgramData folder
+                try {
+                    Remove-Item -Path "$legacy\*" -Recurse -Force -ErrorAction SilentlyContinue
+                    Remove-Item -Path $legacy -Recurse -Force -ErrorAction SilentlyContinue
+                } catch { }
             }
             if (-not (Test-Path $path)) {
                 New-Item -ItemType Directory -Path $path -Force | Out-Null
             }
-        } -ArgumentList $remotePath
+        } -ArgumentList $remotePath, $legacyPath
         
         Copy-Item -Path "$LocalDeployPath\*" -Destination $remotePath -ToSession $session -Recurse -Force
         
@@ -208,34 +217,78 @@ foreach ($pc in $TargetPCs) {
             } catch { }
         } -ArgumentList $ServerPort
         
-        # Create scheduled task
-        Write-ColorOutput "  → Creating startup task..." "Gray"
+        # Configure permissions, logon task, and SYSTEM watchdog task
+        Write-ColorOutput "  → Hardening permissions and configuring startup + watchdog tasks..." "Gray"
         Invoke-Command -Session $session -ScriptBlock {
-            param($exePath)
+            param($targetFolder, $serverIP, $serverPort)
             
-            # Remove existing task
+            # 1. Lock down NTFS permissions (SYSTEM/Admins Full Control, Users Read & Execute only)
+            try {
+                & icacls.exe "$targetFolder" /inheritance:d /grant:r "NT AUTHORITY\SYSTEM:(OI)(CI)F" "BUILTIN\Administrators:(OI)(CI)F" "BUILTIN\Users:(OI)(CI)RX" *>$null
+            } catch { }
+
+            # 2. Configure Interactive Logon Task (Runs in user session with GUI/screen capture access)
             Unregister-ScheduledTask -TaskName "PCMonitorClient" -Confirm:$false -ErrorAction SilentlyContinue
             
-            # Create new task
-            $action = New-ScheduledTaskAction -Execute $exePath -WorkingDirectory (Split-Path $exePath)
+            $action = New-ScheduledTaskAction -Execute "$targetFolder\PCMonitorClient.exe" `
+                                             -Argument "$serverIP $serverPort" `
+                                             -WorkingDirectory $targetFolder
             $trigger = New-ScheduledTaskTrigger -AtLogOn
-            $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
-            $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+            $principal = New-ScheduledTaskPrincipal -GroupId "BUILTIN\Users" -RunLevel Highest
+            $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries `
+                                                     -DontStopIfGoingOnBatteries `
+                                                     -StartWhenAvailable `
+                                                     -RunOnlyIfNetworkAvailable
             
             Register-ScheduledTask -TaskName "PCMonitorClient" `
                                   -Action $action `
                                   -Trigger $trigger `
                                   -Principal $principal `
                                   -Settings $settings `
-                                  -Description "PC Activity Monitoring Client" | Out-Null
-        } -ArgumentList (Join-Path $remotePath "PCMonitorClient.exe")
+                                  -Description "PC Activity Monitoring Client" `
+                                  -Force | Out-Null
+
+            # 3. Configure SYSTEM Watchdog Task (Checks process every 2 mins and restarts if killed)
+            $watchdogScript = @'
+$proc = Get-Process -Name 'PCMonitorClient' -ErrorAction SilentlyContinue
+if (-not $proc) {
+    $explorer = Get-Process -Name 'explorer' -ErrorAction SilentlyContinue
+    if ($explorer) {
+        Start-ScheduledTask -TaskName 'PCMonitorClient' -ErrorAction SilentlyContinue
+    }
+}
+'@
+            $watchdogPath = "$targetFolder\Watchdog.ps1"
+            Set-Content -Path $watchdogPath -Value $watchdogScript -Encoding UTF8 -Force
+
+            Unregister-ScheduledTask -TaskName "PCMonitorWatchdog" -Confirm:$false -ErrorAction SilentlyContinue
+            
+            $wdAction = New-ScheduledTaskAction -Execute "powershell.exe" `
+                                               -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$watchdogPath`""
+            $wdTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) `
+                                                 -RepetitionInterval (New-TimeSpan -Minutes 2) `
+                                                 -RepetitionDuration ([TimeSpan]::MaxValue)
+            $wdPrincipal = New-ScheduledTaskPrincipal -UserId "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+            $wdSettings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+            
+            Register-ScheduledTask -TaskName "PCMonitorWatchdog" `
+                                  -Action $wdAction `
+                                  -Trigger $wdTrigger `
+                                  -Principal $wdPrincipal `
+                                  -Settings $wdSettings `
+                                  -Description "PC Monitor SYSTEM Anti-Tamper Watchdog" `
+                                  -Force | Out-Null
+        } -ArgumentList $remotePath, $ServerIP, $ServerPort
         
-        # Start the client immediately
+        # Start the client immediately if user logged in
         Write-ColorOutput "  → Starting client..." "Gray"
         Invoke-Command -Session $session -ScriptBlock {
-            param($exePath)
-            Start-Process -FilePath $exePath -WindowStyle Hidden
-        } -ArgumentList (Join-Path $remotePath "PCMonitorClient.exe")
+            param($targetFolder)
+            $explorer = Get-Process -Name 'explorer' -ErrorAction SilentlyContinue
+            if ($explorer) {
+                Start-ScheduledTask -TaskName "PCMonitorClient" -ErrorAction SilentlyContinue
+            }
+        } -ArgumentList $remotePath
         
         Remove-PSSession -Session $session
         

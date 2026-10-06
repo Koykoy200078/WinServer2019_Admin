@@ -1,4 +1,4 @@
-# Deployment Verification Script
+﻿# Deployment Verification Script
 param(
     [string]$PCName = "192.168.2.11",
     [pscredential]$Credential = $null
@@ -11,14 +11,18 @@ Write-Host "Target: $PCName`n" -ForegroundColor Yellow
 
 # Check 1: File Share Access & Binary Verification
 Write-Host "[1/4] Checking client installation files..." -ForegroundColor Yellow
-$sharePath = "\\$PCName\C$\ProgramData\PCMonitor"
+$systemPath = "\\$PCName\C$\Program Files\PCMonitor"
+$legacyPath = "\\$PCName\C$\ProgramData\PCMonitor"
+$sharePath = if (Test-Path $systemPath) { $systemPath } else { $legacyPath }
+
 try {
     if (Test-Path $sharePath) {
         $files = Get-ChildItem $sharePath -ErrorAction Stop
-        Write-Host "  [OK] Installation directory found at: $sharePath" -ForegroundColor Green
+        $isProtected = if ($sharePath -eq $systemPath) { " (Hardened System Location)" } else { " (Legacy Location)" }
+        Write-Host "  [OK] Installation directory found at: $sharePath$isProtected" -ForegroundColor Green
         $files | Select-Object Name, @{N="Size (KB)";E={[math]::Round($_.Length/1KB,2)}}, LastWriteTime | Format-Table -AutoSize
     } else {
-        Write-Host "  [FAIL] Folder does not exist: $sharePath" -ForegroundColor Red
+        Write-Host "  [FAIL] Folder does not exist: $systemPath (or legacy $legacyPath)" -ForegroundColor Red
     }
 } catch {
     Write-Host "  [FAIL] Cannot access $sharePath : $_" -ForegroundColor Red
@@ -95,9 +99,11 @@ if ($procs) {
     Write-Host "  [FAIL] PCMonitorClient.exe is NOT running" -ForegroundColor Red
 }
 
-# Check 4: Auto-Start Configuration (Scheduled Task)
-Write-Host "[4/4] Verifying scheduled task auto-start configuration..." -ForegroundColor Yellow
+# Check 4: Auto-Start & Watchdog Configuration (Scheduled Tasks)
+Write-Host "[4/4] Verifying scheduled task auto-start & watchdog configuration..." -ForegroundColor Yellow
 $taskPath = "\\$PCName\C$\Windows\System32\Tasks\PCMonitorClient"
+$watchdogTaskPath = "\\$PCName\C$\Windows\System32\Tasks\PCMonitorWatchdog"
+
 try {
     if (Test-Path $taskPath) {
         Write-Host "  [OK] Scheduled Task 'PCMonitorClient' is registered for Logon auto-start!" -ForegroundColor Green
@@ -108,6 +114,12 @@ try {
         Write-Host "       Arguments: $args" -ForegroundColor Gray
     } else {
         Write-Host "  [WARN] Scheduled Task file not found at $taskPath" -ForegroundColor Yellow
+    }
+
+    if (Test-Path $watchdogTaskPath) {
+        Write-Host "  [OK] SYSTEM Watchdog Task 'PCMonitorWatchdog' is ACTIVE! (anti-tamper protection)" -ForegroundColor Green
+    } else {
+        Write-Host "  [INFO] SYSTEM Watchdog Task not registered (run Deploy-MonitoringClient.ps1 to install)" -ForegroundColor Gray
     }
 } catch {
     Write-Host "  [WARN] Could not inspect task file: $_" -ForegroundColor Yellow

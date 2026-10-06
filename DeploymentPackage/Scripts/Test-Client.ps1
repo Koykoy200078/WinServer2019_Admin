@@ -1,4 +1,4 @@
-# Manual Client Tester - Run this ON the target PC to diagnose issues
+﻿# Manual Client Tester - Run this ON the target PC to diagnose issues
 param(
     [string]$ServerIP = "192.168.2.45",
     [int]$ServerPort = 8888
@@ -9,22 +9,24 @@ Write-Host "  PC Monitor Client - Manual Test" -ForegroundColor Cyan
 Write-Host "=======================================" -ForegroundColor Cyan
 Write-Host ""
 
-$clientPath = "C:\ProgramData\PCMonitor\PCMonitorClient.exe"
+$baseFolder = if (Test-Path "C:\Program Files\PCMonitor\PCMonitorClient.exe") { "C:\Program Files\PCMonitor" } else { "C:\ProgramData\PCMonitor" }
+$clientPath = "$baseFolder\PCMonitorClient.exe"
 
 # Check 1: Files exist
 Write-Host "[1/6] Checking client files..." -ForegroundColor Yellow
 if (Test-Path $clientPath) {
-    Write-Host "  ✓ PCMonitorClient.exe found" -ForegroundColor Green
+    $locType = if ($baseFolder -like "*Program Files*") { "(Protected System Location)" } else { "(Legacy Location)" }
+    Write-Host "  ✓ PCMonitorClient.exe found at: $baseFolder $locType" -ForegroundColor Green
     $size = [math]::Round((Get-Item $clientPath).Length / 1KB, 2)
     Write-Host "    Size: $size KB" -ForegroundColor Gray
 } else {
-    Write-Host "  ✗ Client not found at: $clientPath" -ForegroundColor Red
+    Write-Host "  ✗ Client not found at: C:\Program Files\PCMonitor or C:\ProgramData\PCMonitor" -ForegroundColor Red
     exit 1
 }
 
 # Check 2: Dependencies
 Write-Host "`n[2/6] Checking dependencies..." -ForegroundColor Yellow
-$dllPath = "C:\ProgramData\PCMonitor\Newtonsoft.Json.dll"
+$dllPath = "$baseFolder\Newtonsoft.Json.dll"
 if (Test-Path $dllPath) {
     Write-Host "  ✓ Newtonsoft.Json.dll found" -ForegroundColor Green
 } else {
