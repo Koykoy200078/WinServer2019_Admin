@@ -58,8 +58,9 @@ namespace WinServer2019
                     ps.Runspace = runspace;
 
                     // Set script variables
-                    ps.AddScript($"$script:targetDomain = '{domain}'");
-                    ps.AddScript($"$script:scriptPath = '{scriptPath}'");
+                    ps.AddScript($"$script:targetDomain = '{domain.Replace("'", "''")}'");
+                    ps.AddScript($"$script:scriptPath = '{scriptPath.Replace("'", "''")}'");
+                    ps.AddScript($"$script:blockListsFolder = Join-Path '{scriptPath.Replace("'", "''")}' 'BlockLists'");
                     
                     // Create credential object
                     ps.AddScript($@"
@@ -94,10 +95,17 @@ function Test-DomainMembership {
         [string]$TargetDomain = $script:targetDomain
     )
     
+    if ([string]::IsNullOrWhiteSpace($TargetDomain)) {
+        $TargetDomain = ""csitlab.local""
+    }
+    
     try {
         $result = Invoke-Command -ComputerName $ComputerName -Credential $script:cred -ScriptBlock {
-            $domain = (Get-WmiObject -Class Win32_ComputerSystem).Domain
-            return $domain
+            if (Get-Command Get-CimInstance -ErrorAction SilentlyContinue) {
+                (Get-CimInstance -ClassName Win32_ComputerSystem).Domain
+            } else {
+                (Get-WmiObject -Class Win32_ComputerSystem).Domain
+            }
         } -ErrorAction Stop
         
         return $result -eq $TargetDomain
@@ -141,26 +149,55 @@ function Get-BlockingStatus {
                 
                 $blockedCount = ($content | Where-Object { $_ -match ""BLOCKED BY ADMIN"" }).Count
                 $totalLines = $content.Count
-                $hasBlocks = ($content | Where-Object { $_ -match ""127\.0\.0\.1.*\.(com|net|org)"" }).Count -gt 0
+                $hasBlocks = ($content | Where-Object { $_ -match ""(127\.0\.0\.1|0\.0\.0\.0).*\.(com|net|org|ai|io|me|tv|co)"" }).Count -gt 0
                 
+                $fwRuleCount = 0
+                try {
+                    $fwRules = Get-NetFirewallRule -Name ""ComLab-Block-*"" -ErrorAction SilentlyContinue
+                    if ($fwRules) { $fwRuleCount = @($fwRules).Count }
+                } catch { }
+
+                $dohDisabled = $false
+                try {
+                    $edgeVal = (Get-ItemProperty -Path ""HKLM:\SOFTWARE\Policies\Microsoft\Edge"" -Name ""DnsOverHttpsMode"" -ErrorAction SilentlyContinue).DnsOverHttpsMode
+                    if ($edgeVal -eq ""off"") { $dohDisabled = $true }
+                } catch { }
+
+                $curDomain = if (Get-Command Get-CimInstance -ErrorAction SilentlyContinue) {
+                    (Get-CimInstance -ClassName Win32_ComputerSystem).Domain
+                } else {
+                    (Get-WmiObject -Class Win32_ComputerSystem).Domain
+                }
+
                 return [PSCustomObject]@{
-                    Computer = $env:COMPUTERNAME
-                    HasBlocks = $hasBlocks
-                    BlockedEntries = $blockedCount
+                    Computer        = $env:COMPUTERNAME
+                    HasBlocks       = $hasBlocks
+                    BlockedEntries  = $blockedCount
                     TotalHostsLines = $totalLines
-                    Domain = (Get-WmiObject -Class Win32_ComputerSystem).Domain
-                    Status = ""SUCCESS""
+                    FirewallRules   = $fwRuleCount
+                    DoHDisabled     = $dohDisabled
+                    Domain          = $curDomain
+                    Status          = ""SUCCESS""
                 }
             }
             catch {
+                $errDomain = try {
+                    if (Get-Command Get-CimInstance -ErrorAction SilentlyContinue) {
+                        (Get-CimInstance -ClassName Win32_ComputerSystem).Domain
+                    } else {
+                        (Get-WmiObject -Class Win32_ComputerSystem).Domain
+                    }
+                } catch { ""N/A"" }
                 return [PSCustomObject]@{
-                    Computer = $env:COMPUTERNAME
-                    HasBlocks = ""ERROR""
-                    BlockedEntries = ""N/A""
+                    Computer        = $env:COMPUTERNAME
+                    HasBlocks       = ""ERROR""
+                    BlockedEntries  = ""N/A""
                     TotalHostsLines = ""N/A""
-                    Domain = (Get-WmiObject -Class Win32_ComputerSystem).Domain
-                    Status = ""ERROR""
-                    ErrorMessage = $_.Exception.Message
+                    FirewallRules   = 0
+                    DoHDisabled     = $false
+                    Domain          = $errDomain
+                    Status          = ""ERROR""
+                    ErrorMessage    = $_.Exception.Message
                 }
             }
         } -ErrorAction Stop
@@ -169,13 +206,15 @@ function Get-BlockingStatus {
     }
     catch {
         return [PSCustomObject]@{
-            Computer = $ComputerName
-            HasBlocks = ""ERROR""
-            BlockedEntries = ""N/A""
+            Computer        = $ComputerName
+            HasBlocks       = ""ERROR""
+            BlockedEntries  = ""N/A""
             TotalHostsLines = ""N/A""
-            Domain = ""N/A""
-            Status = ""CONNECTION_ERROR""
-            ErrorMessage = $_.Exception.Message
+            FirewallRules   = 0
+            DoHDisabled     = $false
+            Domain          = ""N/A""
+            Status          = ""CONNECTION_ERROR""
+            ErrorMessage    = $_.Exception.Message
         }
     }
 }
@@ -445,76 +484,209 @@ function Invoke-CustomPSCommand {
         private string GetEmbeddedWebBlockingFunctions()
         {
             return @"
+function Get-SanitizedDomains {
+    param([array]$RawList)
+
+    $clean = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($entry in $RawList) {
+        if ([string]::IsNullOrWhiteSpace($entry)) { continue }
+        $line = $entry.Trim()
+        if ($line.StartsWith(""#"")) { continue }
+
+        $line = $line -replace ""^https?://"", """"
+        if ($line.Contains(""/"")) {
+            $line = $line.Substring(0, $line.IndexOf(""/""))
+        }
+        if ($line.Contains("":"")) {
+            $line = $line.Substring(0, $line.IndexOf("":""))
+        }
+        $line = $line -replace ""^\*\."", """"
+
+        $line = $line.Trim().ToLower()
+        if ($line.Length -gt 3 -and $line.Contains(""."") -and $line -match ""^[a-z0-9\.\-]+$"") {
+            [void]$clean.Add($line)
+        }
+    }
+    return [string[]]$clean
+}
+
 function Invoke-WebBlocking {
     param(
         [Parameter(Mandatory=$true)]
         [array]$Targets,
         [Parameter(Mandatory=$true)]
-        [array]$BlockedSites
+        [array]$BlockedSites,
+        [string]$CategoryName = ""ALL SITES""
     )
-    
+
+    $cleanSites = Get-SanitizedDomains -RawList $BlockedSites
+    if ($cleanSites.Count -eq 0) {
+        Write-Host ""ERROR: No valid domains to block."" -ForegroundColor Red
+        return
+    }
+
+    Write-Host """"
+    Write-Host ""========================================================="" -ForegroundColor Cyan
+    Write-Host ""  APPLYING MULTI-LAYER WEB & PROTOCOL BLOCKING: $CategoryName"" -ForegroundColor Cyan
+    Write-Host ""  Unique domains: $($cleanSites.Count)"" -ForegroundColor Green
+    Write-Host ""  Layers: HOSTS Sinkhole + Anti-DoH + Firewall TCP/UDP"" -ForegroundColor Yellow
+    Write-Host ""========================================================="" -ForegroundColor Cyan
+    Write-Host """"
+
     foreach ($pc in $Targets) {
         Write-Host ""Checking $pc ..."" -ForegroundColor Cyan
         try {
             if (Test-WSMan -ComputerName $pc -ErrorAction Stop) {
                 $isDomainMember = Test-DomainMembership -ComputerName $pc
-                
                 if (-not $isDomainMember) {
                     Write-Host ""$pc is not in $script:targetDomain domain - SKIPPING"" -ForegroundColor Red
                     continue
                 }
-                
-                Write-Host ""Blocking web access on $pc..."" -ForegroundColor Yellow
-                
-                $result = Invoke-Command -ComputerName $pc -Credential $script:cred -ArgumentList (,$BlockedSites) -ScriptBlock {
-                    param($sites)
-                    
+
+                Write-Host ""$($pc): Applying $CategoryName blocking..."" -ForegroundColor Yellow
+
+                $result = Invoke-Command -ComputerName $pc -Credential $script:cred -ArgumentList (,$cleanSites), $CategoryName -ScriptBlock {
+                    param($sites, $category)
+
+                    $results = @()
+                    $hostsFile = ""$env:SystemRoot\System32\drivers\etc\hosts""
+
                     try {
-                        $hostsFile = ""$env:SystemRoot\System32\drivers\etc\hosts""
-                        
                         if (-not (Test-Path $hostsFile)) {
-                            throw ""Hosts file not found""
+                            throw ""Hosts file not found at $hostsFile""
                         }
-                        
+
+                        # --- LAYER 1: HOSTS SINKHOLING ---
                         $backupName = ""$hostsFile.backup-$(Get-Date -Format 'yyyyMMdd-HHmmss')""
-                        Copy-Item $hostsFile $backupName -Force
-                        
-                        $content = Get-Content $hostsFile -Encoding UTF8
-                        $newContent = $content | Where-Object { 
-                            $_ -notmatch ""BLOCKED BY ADMIN""
+                        Copy-Item $hostsFile $backupName -Force -ErrorAction Stop
+
+                        $content = @()
+                        for ($i = 0; $i -lt 3; $i++) {
+                            try {
+                                [System.GC]::Collect()
+                                [System.GC]::WaitForPendingFinalizers()
+                                $content = Get-Content $hostsFile -Encoding UTF8 -ErrorAction Stop
+                                break
+                            } catch { Start-Sleep -Milliseconds 400 }
                         }
-                        
+
+                        $markerStart = ""# BLOCKED BY ADMIN - $category - START""
+                        $markerEnd   = ""# BLOCKED BY ADMIN - $category - END""
+
+                        $newContent = @()
+                        $skip = $false
+                        foreach ($line in $content) {
+                            if ($line -like ""*BLOCKED BY ADMIN - $category - START*"" -or ($category -eq ""ALL SITES"" -and $line -like ""*BLOCKED BY ADMIN*"")) {
+                                $skip = $true
+                                continue
+                            }
+                            if ($skip -and ($line -like ""*BLOCKED BY ADMIN - $category - END*"" -or $line -like ""*END BLOCKED BY ADMIN*"")) {
+                                $skip = $false
+                                continue
+                            }
+                            if (-not $skip) {
+                                $newContent += $line
+                            }
+                        }
+
                         $blockEntries = @()
-                        $blockEntries += ""# BLOCKED BY ADMIN - $(Get-Date)""
                         $blockEntries += """"
-                        
+                        $blockEntries += $markerStart
+                        $blockEntries += ""# Applied on $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') for $($sites.Count) domains""
+
+                        $emitted = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
                         foreach ($site in $sites) {
-                            $blockEntries += ""127.0.0.1 $site""
-                            $blockEntries += ""0.0.0.0 $site""
+                            if ($emitted.Add($site)) {
+                                $blockEntries += ""0.0.0.0 $site""
+                                $blockEntries += ""127.0.0.1 $site""
+                            }
+                            if (-not $site.StartsWith(""www."") -and -not $site.StartsWith(""api."")) {
+                                $wwwSite = ""www.$site""
+                                if ($emitted.Add($wwwSite)) {
+                                    $blockEntries += ""0.0.0.0 $wwwSite""
+                                    $blockEntries += ""127.0.0.1 $wwwSite""
+                                }
+                            }
                         }
-                        
+
+                        $blockEntries += $markerEnd
                         $blockEntries += """"
+
                         $finalContent = $newContent + $blockEntries
-                        $finalContent | Out-File -FilePath $hostsFile -Encoding UTF8 -Force
-                        
+                        $finalContent | Set-Content -Path $hostsFile -Encoding UTF8 -Force
+
+                        # --- LAYER 2: ANTI-DOH BROWSER POLICY ---
+                        $browserPolicies = @(
+                            ""HKLM:\SOFTWARE\Policies\Microsoft\Edge"",
+                            ""HKLM:\SOFTWARE\Policies\Google\Chrome"",
+                            ""HKLM:\SOFTWARE\Policies\Mozilla\Firefox""
+                        )
+                        foreach ($p in $browserPolicies) {
+                            try {
+                                if (-not (Test-Path $p)) { New-Item -Path $p -Force | Out-Null }
+                                Set-ItemProperty -Path $p -Name ""DnsOverHttpsMode"" -Value ""off"" -Type String -Force
+                            } catch { }
+                        }
+
+                        # --- LAYER 3: WINDOWS FIREWALL OUTBOUND BLOCKING ---
+                        $dohIPs = @(
+                            ""1.1.1.1"", ""1.0.0.1"",
+                            ""8.8.8.8"", ""8.8.4.4"",
+                            ""9.9.9.9"", ""149.112.112.112"",
+                            ""208.67.222.222"", ""208.67.220.220""
+                        )
+
+                        try {
+                            Get-NetFirewallRule -Name ""ComLab-Block-*"" -ErrorAction SilentlyContinue | Remove-NetFirewallRule -ErrorAction SilentlyContinue
+
+                            New-NetFirewallRule -DisplayName ""ComLab - Block Public DoH TCP 443"" `
+                                -Name ""ComLab-Block-DoH-TCP"" -Direction Outbound -Action Block `
+                                -RemoteAddress $dohIPs -Protocol TCP -RemotePort 443 -Enabled True -ErrorAction SilentlyContinue | Out-Null
+
+                            New-NetFirewallRule -DisplayName ""ComLab - Block Public DoH UDP 443"" `
+                                -Name ""ComLab-Block-DoH-UDP"" -Direction Outbound -Action Block `
+                                -RemoteAddress $dohIPs -Protocol UDP -RemotePort 443 -Enabled True -ErrorAction SilentlyContinue | Out-Null
+
+                            New-NetFirewallRule -DisplayName ""ComLab - Block DNS over TLS 853"" `
+                                -Name ""ComLab-Block-DoT"" -Direction Outbound -Action Block `
+                                -Protocol TCP -RemotePort 853 -Enabled True -ErrorAction SilentlyContinue | Out-Null
+
+                            New-NetFirewallRule -DisplayName ""ComLab - Block QUIC UDP 443"" `
+                                -Name ""ComLab-Block-QUIC"" -Direction Outbound -Action Block `
+                                -Protocol UDP -RemotePort 443 -Enabled True -ErrorAction SilentlyContinue | Out-Null
+                        } catch { }
+
+                        # --- LAYER 4: DNS FLUSH & BROWSER CLEANUP ---
+                        Clear-DnsClientCache -ErrorAction SilentlyContinue
                         ipconfig /flushdns | Out-Null
-                        
-                        return @{ Success = $true; SitesBlocked = $sites.Count }
+
+                        Get-Process -Name msedge, chrome, firefox -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+
+                        return @{
+                            Success = $true
+                            Computer = $env:COMPUTERNAME
+                            SitesBlocked = $sites.Count
+                            TotalEntries = $blockEntries.Count
+                        }
                     }
                     catch {
-                        return @{ Success = $false; Message = $_.Exception.Message }
+                        return @{
+                            Success = $false
+                            Computer = $env:COMPUTERNAME
+                            Message = $_.Exception.Message
+                        }
                     }
                 } -ErrorAction Stop
-                
+
                 if ($result.Success) {
-                    Write-Host ""$pc blocked successfully ($($result.SitesBlocked) sites)"" -ForegroundColor Green
+                    Write-Host ""  [OK] $pc blocked successfully ($($result.SitesBlocked) domains, $($result.TotalEntries) entries)"" -ForegroundColor Green
                 } else {
-                    Write-Host ""$pc FAILED: $($result.Message)"" -ForegroundColor Red
+                    Write-Host ""  [FAIL] $pc FAILED: $($result.Message)"" -ForegroundColor Red
                 }
             }
         }
         catch {
-            Write-Host ""$pc is offline or unreachable"" -ForegroundColor DarkGray
+            Write-Host ""  [FAIL] $pc is offline or WinRM failed: $_"" -ForegroundColor DarkGray
         }
     }
 }
@@ -524,55 +696,64 @@ function Invoke-WebUnblocking {
         [Parameter(Mandatory=$true)]
         [array]$Targets
     )
-    
+
     foreach ($pc in $Targets) {
         Write-Host ""Checking $pc ..."" -ForegroundColor Cyan
         try {
             if (Test-WSMan -ComputerName $pc -ErrorAction Stop) {
                 $isDomainMember = Test-DomainMembership -ComputerName $pc
-                
                 if (-not $isDomainMember) {
                     Write-Host ""$pc is not in $script:targetDomain domain - SKIPPING"" -ForegroundColor Red
                     continue
                 }
-                
-                Write-Host ""Unblocking web access on $pc..."" -ForegroundColor Yellow
-                
+
+                Write-Host ""$($pc): Unblocking web access and removing protocol restrictions..."" -ForegroundColor Yellow
+
                 $result = Invoke-Command -ComputerName $pc -Credential $script:cred -ScriptBlock {
                     try {
                         $hostsFile = ""$env:SystemRoot\System32\drivers\etc\hosts""
-                        
-                        if (-not (Test-Path $hostsFile)) {
-                            throw ""Hosts file not found""
-                        }
-                        
+                        if (-not (Test-Path $hostsFile)) { throw ""Hosts file not found"" }
+
                         $content = Get-Content $hostsFile -Encoding UTF8
-                        $newContent = $content | Where-Object { 
-                            $_ -notmatch ""BLOCKED BY ADMIN"" -and 
-                            $_ -notmatch ""127\.0\.0\.1\s+(?!localhost)"" -and
-                            $_ -notmatch ""0\.0\.0\.0\s+""
+                        $newContent = @()
+                        $skip = $false
+
+                        foreach ($line in $content) {
+                            if ($line -like ""*BLOCKED BY ADMIN*START*"") { $skip = $true; continue }
+                            if ($skip -and $line -like ""*BLOCKED BY ADMIN*END*"") { $skip = $false; continue }
+                            if ($skip) { continue }
+                            if ($line -match ""BLOCKED BY ADMIN"") { continue }
+                            if ($line -match ""(127\.0\.0\.1|0\.0\.0\.0)\s+(?!localhost)(?!broadcasthost)"") { continue }
+                            $newContent += $line
                         }
-                        
-                        $newContent | Out-File -FilePath $hostsFile -Encoding UTF8 -Force
-                        
+
+                        $newContent | Set-Content -Path $hostsFile -Encoding UTF8 -Force
+
+                        Get-NetFirewallRule -Name ""ComLab-Block-*"" -ErrorAction SilentlyContinue | Remove-NetFirewallRule -ErrorAction SilentlyContinue
+
+                        Remove-ItemProperty -Path ""HKLM:\SOFTWARE\Policies\Microsoft\Edge"" -Name ""DnsOverHttpsMode"" -ErrorAction SilentlyContinue
+                        Remove-ItemProperty -Path ""HKLM:\SOFTWARE\Policies\Google\Chrome"" -Name ""DnsOverHttpsMode"" -ErrorAction SilentlyContinue
+                        Remove-ItemProperty -Path ""HKLM:\SOFTWARE\Policies\Mozilla\Firefox"" -Name ""DNSOverHTTPS"" -ErrorAction SilentlyContinue
+
+                        Clear-DnsClientCache -ErrorAction SilentlyContinue
                         ipconfig /flushdns | Out-Null
-                        
-                        return @{ Success = $true }
+
+                        return @{ Success = $true; Computer = $env:COMPUTERNAME }
                     }
                     catch {
-                        return @{ Success = $false; Message = $_.Exception.Message }
+                        return @{ Success = $false; Computer = $env:COMPUTERNAME; Message = $_.Exception.Message }
                     }
                 } -ErrorAction Stop
-                
+
                 if ($result.Success) {
-                    Write-Host ""$pc unblocked successfully"" -ForegroundColor Green
+                    Write-Host ""  [OK] $pc unblocked successfully (HOSTS & Firewall restored)"" -ForegroundColor Green
                 } else {
-                    Write-Host ""$pc FAILED: $($result.Message)"" -ForegroundColor Red
+                    Write-Host ""  [FAIL] $pc FAILED: $($result.Message)"" -ForegroundColor Red
                 }
             }
         }
         catch {
-            Write-Host ""$pc is offline or unreachable"" -ForegroundColor DarkGray
+            Write-Host ""  [FAIL] $pc is offline or WinRM failed: $_"" -ForegroundColor DarkGray
         }
     }
 }
@@ -584,47 +765,134 @@ function Invoke-AIBlocking {
         [Parameter(Mandatory=$true)]
         [array]$AISites
     )
-    
-    foreach ($pc in $Targets) {
-        Write-Host ""Blocking AI sites on $pc..."" -ForegroundColor Yellow
-        try {
-            if (Test-WSMan -ComputerName $pc -ErrorAction Stop) {
-                $result = Invoke-Command -ComputerName $pc -Credential $script:cred -ArgumentList (,$AISites) -ScriptBlock {
-                    param($sites)
-                    try {
-                        $hostsFile = ""$env:SystemRoot\System32\drivers\etc\hosts""
-                        $content = Get-Content $hostsFile -Encoding UTF8
-                        $blockEntries = @(""# AI SITES BLOCKED - $(Get-Date)"")
-                        foreach ($site in $sites) {
-                            $blockEntries += ""127.0.0.1 $site""
-                        }
-                        $finalContent = $content + $blockEntries
-                        $finalContent | Out-File -FilePath $hostsFile -Encoding UTF8 -Force
-                        ipconfig /flushdns | Out-Null
-                        return @{ Success = $true }
-                    } catch {
-                        return @{ Success = $false }
-                    }
-                }
-                Write-Host ""$pc AI sites blocked"" -ForegroundColor Green
+    Invoke-WebBlocking -Targets $Targets -BlockedSites $AISites -CategoryName ""AI SITES ONLY""
+}
+
+function Invoke-SocialMediaBlocking {
+    param(
+        [Parameter(Mandatory=$true)]
+        [array]$Targets,
+        [Parameter(Mandatory=$true)]
+        [array]$SocialSites
+    )
+    Invoke-WebBlocking -Targets $Targets -BlockedSites $SocialSites -CategoryName ""SOCIAL MEDIA ONLY""
+}
+
+function Invoke-FocusModeBlocking {
+    param(
+        [Parameter(Mandatory=$true)]
+        [array]$Targets,
+        [Parameter(Mandatory=$true)]
+        [array]$AISites,
+        [Parameter(Mandatory=$true)]
+        [array]$SocialSites
+    )
+    $combined = @($AISites) + @($SocialSites)
+    Invoke-WebBlocking -Targets $Targets -BlockedSites $combined -CategoryName ""AI + SOCIAL MEDIA (FOCUS MODE)""
+}
+
+function Invoke-DeepScan {
+    Write-Host """"
+    Write-Host ""========================================================="" -ForegroundColor Cyan
+    Write-Host ""  DEEP SCAN: LAB BLOCKING & SECURITY AUDIT"" -ForegroundColor Cyan
+    Write-Host ""========================================================="" -ForegroundColor Cyan
+    Write-Host """"
+
+    $targets = foreach ($i in 1..35) { ""PC-$i"" }
+    $reports = @()
+
+    foreach ($pc in $targets) {
+        Write-Host ""Auditing $pc... "" -ForegroundColor Gray -NoNewline
+        $status = Get-BlockingStatus -ComputerName $pc
+
+        if ($status.Status -eq ""SUCCESS"") {
+            $stateDesc = if ($status.HasBlocks) { ""BLOCKED ($($status.BlockedEntries) entries)"" } else { ""UNBLOCKED"" }
+            $fwDesc = if ($status.FirewallRules -gt 0) { ""ACTIVE ($($status.FirewallRules))"" } else { ""None"" }
+            $dohDesc = if ($status.DoHDisabled) { ""ENFORCED"" } else { ""Default"" }
+
+            Write-Host ""[$stateDesc | FW: $fwDesc | DoH: $dohDesc]"" -ForegroundColor ($status.HasBlocks ? ""Yellow"" : ""Green"")
+
+            $reports += [PSCustomObject]@{
+                PC           = $pc
+                Status       = ""ONLINE""
+                WebBlocking  = $stateDesc
+                Firewall     = $fwDesc
+                AntiDoH      = $dohDesc
+                TotalLines   = $status.TotalHostsLines
             }
-        } catch {
-            Write-Host ""$pc is offline"" -ForegroundColor DarkGray
+        } else {
+            Write-Host ""[OFFLINE]"" -ForegroundColor DarkGray
+            $reports += [PSCustomObject]@{
+                PC           = $pc
+                Status       = ""OFFLINE""
+                WebBlocking  = ""N/A""
+                Firewall     = ""N/A""
+                AntiDoH      = ""N/A""
+                TotalLines   = ""N/A""
+            }
         }
     }
+
+    Write-Host """"
+    Write-Host ""AUDIT SUMMARY TABLE:"" -ForegroundColor Yellow
+    $reports | Format-Table -AutoSize
 }
 
 function Show-BlockLists {
     param(
         [Parameter(Mandatory=$true)]
         [array]$BlockedSites,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$false)]
         [string]$BlockListsFolder
     )
     
-    Write-Host ""===== BLOCK LISTS ====="" -ForegroundColor Cyan
-    Write-Host ""Total sites: $($BlockedSites.Count)"" -ForegroundColor Green
-    Write-Host ""Categories loaded from embedded lists"" -ForegroundColor Yellow
+    Write-Host """"
+    Write-Host ""========================================================="" -ForegroundColor Cyan
+    Write-Host ""               CURRENT BLOCK LIST SUMMARY                 "" -ForegroundColor Cyan
+    Write-Host ""========================================================="" -ForegroundColor Cyan
+    Write-Host ""Total unique active sites across all files: $($BlockedSites.Count)"" -ForegroundColor Green
+    Write-Host """"
+    
+    $folderToUse = if ($BlockListsFolder -and (Test-Path $BlockListsFolder)) {
+        $BlockListsFolder
+    } elseif ($script:blockListsFolder -and (Test-Path $script:blockListsFolder)) {
+        $script:blockListsFolder
+    } else {
+        $null
+    }
+
+    if ($folderToUse) {
+        $blockFiles = Get-ChildItem -Path $folderToUse -Filter ""*.txt"" | Where-Object { 
+            $_.Name -notin @(""README.txt"", ""QUICK-REFERENCE.txt"", ""SITE-LIST.txt"") 
+        }
+        
+        foreach ($file in $blockFiles) {
+            $raw = Get-Content $file.FullName
+            $sites = Get-SanitizedDomains -RawList $raw
+            
+            $categoryName = switch ($file.BaseName) {
+                ""ai-sites""                { ""Artificial Intelligence (AI & ChatBots)"" }
+                ""social-media""            { ""Social Media & Messaging Platforms"" }
+                ""video-sites""             { ""Video Streaming & Entertainment"" }
+                ""gaming-sites""            { ""Online Gaming Platforms"" }
+                ""shopping-entertainment""  { ""Shopping & Lifestyle"" }
+                ""search-engines""          { ""Search Engines"" }
+                default                   { $file.BaseName }
+            }
+            
+            Write-Host ""█ $categoryName ($($sites.Count) domains)"" -ForegroundColor Yellow
+            Write-Host ""  File: $($file.Name)"" -ForegroundColor DarkGray
+            $preview = $sites | Select-Object -First 4
+            foreach ($s in $preview) { Write-Host ""    • $s"" -ForegroundColor White }
+            if ($sites.Count -gt 4) { Write-Host ""    ... and $($sites.Count - 4) more"" -ForegroundColor Gray }
+            Write-Host """"
+        }
+    } else {
+        Write-Host ""Loaded from embedded memory lists:"" -ForegroundColor Yellow
+        Write-Host ""  Total Blocked Sites: $($BlockedSites.Count)"" -ForegroundColor White
+        Write-Host ""  AI Sites Only: $($script:aiSitesOnly.Count)"" -ForegroundColor White
+        Write-Host ""  Social Media Only: $($script:socialSitesOnly.Count)"" -ForegroundColor White
+    }
 }
 ";
         }
@@ -768,38 +1036,75 @@ function Clear-TempFiles {
         private string GetBlockListsScript()
         {
             return @"
-# Initialize block lists with embedded data
-$script:blockedSites = @(
-    'facebook.com', 'www.facebook.com', 'fb.com',
-    'youtube.com', 'www.youtube.com', 'youtu.be',
-    'twitter.com', 'www.twitter.com', 'x.com',
-    'instagram.com', 'www.instagram.com',
-    'tiktok.com', 'www.tiktok.com',
-    'reddit.com', 'www.reddit.com',
-    'netflix.com', 'www.netflix.com',
-    'twitch.tv', 'www.twitch.tv',
-    'discord.com', 'www.discord.com',
-    'snapchat.com', 'www.snapchat.com'
-)
+# Initialize block lists with dynamic loading from disk, fallback to embedded
+$script:blockedSites = @()
+$script:blockListStats = @{}
+$script:aiSitesOnly = @()
+$script:socialSitesOnly = @()
 
-$script:aiSitesOnly = @(
-    'openai.com', 'chat.openai.com', 'chatgpt.com',
-    'claude.ai', 'anthropic.com',
-    'gemini.google.com', 'bard.google.com',
-    'copilot.microsoft.com', 'bing.com/chat',
-    'perplexity.ai', 'you.com',
-    'character.ai', 'poe.com',
-    'midjourney.com', 'stability.ai',
-    'huggingface.co', 'replicate.com'
-)
-
-$script:blockListStats = @{
-    'social-media' = 10
-    'video-sites' = 5
-    'ai-sites' = 16
+$folderToSearch = if ($script:blockListsFolder -and (Test-Path $script:blockListsFolder)) {
+    $script:blockListsFolder
+} elseif ($script:scriptPath -and (Test-Path (Join-Path $script:scriptPath 'BlockLists'))) {
+    Join-Path $script:scriptPath 'BlockLists'
+} else {
+    $null
 }
 
-Write-Host 'Block lists loaded: $($script:blockedSites.Count) total sites' -ForegroundColor Green
+if ($folderToSearch -and (Test-Path $folderToSearch)) {
+    $blockFiles = Get-ChildItem -Path $folderToSearch -Filter '*.txt' | Where-Object { 
+        $_.Name -notin @('README.txt', 'QUICK-REFERENCE.txt', 'SITE-LIST.txt') 
+    }
+    
+    foreach ($file in $blockFiles) {
+        $sites = Get-Content $file.FullName | Where-Object { 
+            $_ -notmatch '^#' -and $_ -notmatch '^\s*$' 
+        }
+        
+        $script:blockListStats[$file.BaseName] = $sites.Count
+        $script:blockedSites += $sites
+        
+        if ($file.BaseName -eq 'ai-sites') {
+            $script:aiSitesOnly = $sites
+        } elseif ($file.BaseName -eq 'social-media') {
+            $script:socialSitesOnly = $sites
+        }
+    }
+    Write-Host ""Block lists loaded from disk ($folderToSearch): $($script:blockedSites.Count) total sites"" -ForegroundColor Green
+    Write-Host ""  AI Sites: $($script:aiSitesOnly.Count) | Social Media: $($script:socialSitesOnly.Count)"" -ForegroundColor Cyan
+} else {
+    # Fallback to embedded lists
+    $script:blockedSites = @(
+        'facebook.com', 'www.facebook.com', 'fb.com', 'm.facebook.com',
+        'youtube.com', 'www.youtube.com', 'youtu.be',
+        'twitter.com', 'www.twitter.com', 'x.com',
+        'instagram.com', 'www.instagram.com',
+        'tiktok.com', 'www.tiktok.com',
+        'reddit.com', 'www.reddit.com',
+        'netflix.com', 'www.netflix.com',
+        'twitch.tv', 'www.twitch.tv',
+        'discord.com', 'www.discord.com',
+        'snapchat.com', 'www.snapchat.com',
+        'openai.com', 'chatgpt.com', 'claude.ai', 'gemini.google.com', 'deepseek.com'
+    )
+    $script:aiSitesOnly = @(
+        'openai.com', 'chatgpt.com', 'chat.openai.com', 'api.openai.com', 'sora.com',
+        'claude.ai', 'anthropic.com',
+        'gemini.google.com', 'bard.google.com',
+        'deepseek.com', 'api.deepseek.com',
+        'copilot.microsoft.com',
+        'perplexity.ai', 'grok.com', 'x.ai', 'character.ai', 'poe.com',
+        'midjourney.com', 'stability.ai', 'huggingface.co', 'cursor.com', 'v0.dev'
+    )
+    $script:socialSitesOnly = @(
+        'facebook.com', 'www.facebook.com', 'instagram.com', 'threads.net',
+        'tiktok.com', 'x.com', 'twitter.com', 'discord.com', 'reddit.com'
+    )
+    $script:blockListStats = @{
+        'social-media' = $script:socialSitesOnly.Count
+        'ai-sites' = $script:aiSitesOnly.Count
+    }
+    Write-Host ""Block lists loaded from embedded fallback: $($script:blockedSites.Count) total sites"" -ForegroundColor Yellow
+}
 ";
         }
 

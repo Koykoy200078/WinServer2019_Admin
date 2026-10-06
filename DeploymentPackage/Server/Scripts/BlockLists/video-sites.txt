@@ -21,10 +21,10 @@ nflxvideo.net
 # Amazon Prime Video
 primevideo.com
 www.primevideo.com
-amazon.com/gp/video
+amazon.com
 amazonvideo.com
-amazon.de/primevideo
-amazon.co.uk/primevideo
+amazon.de
+amazon.co.uk
 
 # Disney+
 disneyplus.com
@@ -65,7 +65,6 @@ www.showtime.com
 # Peacock
 peacocktv.com
 www.peacocktv.com
-peacocktv.com
 nbc.com
 www.nbc.com
 
@@ -197,7 +196,6 @@ teennick.com
 www.teennick.com
 nickjr.com
 www.nickjr.com
-disney.com
 www.disney.com
 disneychannel.com
 www.disneychannel.com
@@ -221,14 +219,14 @@ wwenetwork.com
 www.wwenetwork.com
 mlb.tv
 www.mlb.tv
-nba.com/watch
-www.nba.com/watch
+nba.com
+www.nba.com
 leaguepass.nba.com
 www.leaguepass.nba.com
 nhl.tv
 www.nhl.tv
-nfl.com/network
-www.nfl.com/network
+nfl.com
+www.nfl.com
 redzone.nfl.com
 www.redzone.nfl.com
 tennischannel.com
@@ -327,11 +325,6 @@ galavision.com
 www.galavision.com
 
 # Live Streaming & Broadcasting
-twitch.tv
-www.twitch.tv
-twitchcdn.net
-jtvnw.net
-ttvnw.net
 mixer.com
 www.mixer.com
 watchmixer.com
@@ -366,16 +359,13 @@ pscp.tv
 www.pscp.tv
 livestream.com
 www.livestream.com
-vimeo.com/livestream
 ustream.tv
 www.ustream.tv
-ibm.com/watson/media
-facebook.com/watch
-www.facebook.com/watch
-instagram.com/live
-www.instagram.com/live
-youtube.com/live
-www.youtube.com/live
+ibm.com
+facebook.com
+www.facebook.com
+instagram.com
+www.instagram.com
 kick.com
 www.kick.com
 
@@ -396,8 +386,8 @@ pluralsight.com
 www.pluralsight.com
 lynda.com
 www.lynda.com
-linkedin.com/learning
-www.linkedin.com/learning
+linkedin.com
+www.linkedin.com
 masterclass.com
 www.masterclass.com
 curiositystream.com

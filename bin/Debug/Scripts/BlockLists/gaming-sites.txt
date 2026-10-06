@@ -93,23 +93,18 @@ playstation.com
 store.playstation.com
 xbox.com
 www.xbox.com
-microsoft.com/store/games
 nintendo.com
 www.nintendo.com
 nintendo.net
 www.nintendo.net
 
 # Console Gaming
-playstation.com
 www.playstation.com
-store.playstation.com
 my.playstation.com
 psnprofiles.com
 www.psnprofiles.com
 psprices.com
 www.psprices.com
-xbox.com
-www.xbox.com
 xboxlive.com
 www.xboxlive.com
 account.xbox.com
@@ -119,10 +114,6 @@ gamepass.com
 www.gamepass.com
 xboxgamepass.com
 www.xboxgamepass.com
-nintendo.com
-www.nintendo.com
-nintendo.net
-www.nintendo.net
 nintendo.co.uk
 www.nintendo.co.uk
 nintendo.de
@@ -218,25 +209,13 @@ king.com
 www.king.com
 zynga.com
 www.zynga.com
-gameforge.com
-www.gameforge.com
-aeriagames.com
-www.aeriagames.com
-perfectworld.com
-www.perfectworld.com
-gamigo.com
-www.gamigo.com
-innogames.com
-www.innogames.com
-bigpoint.com
-www.bigpoint.com
 playerunknown.com
 www.playerunknown.com
 faceit.com
 www.faceit.com
 esea.net
 www.esea.net
-twitch.tv/directory/game
+twitch.tv
 mixer.com
 www.mixer.com
 
@@ -263,7 +242,6 @@ angrybirds.com
 www.angrybirds.com
 candycrushsaga.com
 www.candycrushsaga.com
-king.com/games
 gardenscapes.com
 www.gardenscapes.com
 homescapes.com
@@ -316,8 +294,8 @@ legendsofruneterra.com
 www.legendsofruneterra.com
 wildrift.leagueoflegends.com
 teamfighttactics.leagueoflegends.com
-play.google.com/store/games
-apps.apple.com/category/games
+play.google.com
+apps.apple.com
 
 # Gaming Communities
 gamefaqs.com
@@ -364,14 +342,8 @@ massivelyop.com
 www.massivelyop.com
 mmorpg.com
 www.mmorpg.com
-reddit.com/r/gaming
-www.reddit.com/r/gaming
-reddit.com/r/games
-www.reddit.com/r/games
-reddit.com/r/pcgaming
-www.reddit.com/r/pcgaming
-reddit.com/r/gamingsuggestions
-www.reddit.com/r/gamingsuggestions
+reddit.com
+www.reddit.com
 neogaf.com
 www.neogaf.com
 resetera.com
@@ -380,8 +352,8 @@ vg247.com
 www.vg247.com
 giantbomb.com
 www.giantbomb.com
-metacritic.com/games
-www.metacritic.com/games
+metacritic.com
+www.metacritic.com
 opencritic.com
 www.opencritic.com
 howlongtobeat.com
@@ -410,12 +382,12 @@ eneba.com
 www.eneba.com
 
 # Game Streaming & Cloud Gaming
-geforce.com/games
-www.geforce.com/games
+geforce.com
+www.geforce.com
 geforcenow.com
 www.geforcenow.com
-nvidia.com/geforce-now
-www.nvidia.com/geforce-now
+nvidia.com
+www.nvidia.com
 stadia.google.com
 www.stadia.google.com
 xcloud.microsoft.com
@@ -446,14 +418,8 @@ lolesports.com
 www.lolesports.com
 overwatchleague.com
 www.overwatchleague.com
-callofduty.com/esports
-www.callofduty.com/esports
 hltv.org
 www.hltv.org
-faceit.com
-www.faceit.com
-esea.net
-www.esea.net
 esl.com
 www.esl.com
 eslgaming.com
@@ -462,9 +428,6 @@ dreamhack.com
 www.dreamhack.com
 majorleaguegaming.com
 www.majorleaguegaming.com
-twitch.tv/directory/game
-www.twitch.tv/directory/game
-youtube.com/gaming
-www.youtube.com/gaming
-mixer.com/browse/games
-www.mixer.com/browse/games
+www.twitch.tv
+youtube.com
+www.youtube.com

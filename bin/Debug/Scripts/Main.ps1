@@ -18,7 +18,11 @@ $defaultDomain = "csitlab.local"
 $detectedDomain = ""
 
 try {
-    $detectedDomain = (Get-WmiObject -Class Win32_ComputerSystem).Domain
+    if (Get-Command Get-CimInstance -ErrorAction SilentlyContinue) {
+        $detectedDomain = (Get-CimInstance -ClassName Win32_ComputerSystem).Domain
+    } else {
+        $detectedDomain = (Get-WmiObject -Class Win32_ComputerSystem).Domain
+    }
     if ([string]::IsNullOrWhiteSpace($detectedDomain) -or $detectedDomain -eq "WORKGROUP") {
         $detectedDomain = "Not domain-joined (WORKGROUP)"
     }
@@ -93,6 +97,7 @@ Write-Host "Modules loaded successfully!" -ForegroundColor Green
 Write-Host ""
 
 # Main Menu Function
+# Main Menu Function
 function Show-Menu {
     Clear-Host
     Write-Host "=============================================" -ForegroundColor Cyan
@@ -116,28 +121,22 @@ function Show-Menu {
     Write-Host "  7.  Restart ALL PCs (PC-1 to PC-35)"
     Write-Host "  8.  Execute Custom PowerShell Command"
     Write-Host ""
-    Write-Host "█ WEB BLOCKING" -ForegroundColor Yellow
-    Write-Host "  9.  Block Web/DNS access on a single PC"
-    Write-Host "  10. Block Web/DNS access on a range of PCs"
-    Write-Host "  11. Block Web/DNS access on ALL PCs (PC-1 to PC-35)"
-    Write-Host "  12. Unblock Web/DNS access on a single PC"
-    Write-Host "  13. Unblock Web/DNS access on a range of PCs"
-    Write-Host "  14. Unblock Web/DNS access on ALL PCs (PC-1 to PC-35)"
-    Write-Host "  15. Deep Scan - Check blocking status on all PCs"
-    Write-Host "  16. View Current Block Lists"
-    Write-Host "  17. Block AI Sites ONLY on ALL PCs (PC-1 to PC-35)"
+    Write-Host "█ WEB & PROTOCOL BLOCKING (HOSTS + Firewall TCP/UDP + Anti-DoH)" -ForegroundColor Yellow
+    Write-Host "  9.  Block ALL Categories (Single, Range, or ALL PCs)"
+    Write-Host "  10. Block AI Sites ONLY (Single, Range, or ALL PCs)"
+    Write-Host "  11. Block Social Media ONLY (Single, Range, or ALL PCs)"
+    Write-Host "  12. Block AI + Social Media [Focus Mode] (Single, Range, or ALL PCs)"
+    Write-Host "  13. Unblock Web Access / Restore All (Single, Range, or ALL PCs)"
+    Write-Host "  14. Deep Scan & Security Audit (Audit all 35 PCs)"
+    Write-Host "  15. View Block Lists & Category Statistics"
     Write-Host ""
-    Write-Host "█ UTILITIES" -ForegroundColor Magenta
-    Write-Host "  18. Sync Time/Date/Timezone to ALL PCs from Server"
-    Write-Host "  19. Clean up backup hosts files on ALL PCs"
-    Write-Host "  20. View all PC hosts files"
-    Write-Host "  21. Export MySQL Database from a single PC"
-    Write-Host "  22. Export MySQL Databases from a range of PCs"
-    Write-Host "  23. Export MySQL Databases from ALL PCs"
-    Write-Host "  24. Check/Fix Android & Java Environment Variables"
-    Write-Host "  25. Clean Temporary Files on a single PC"
-    Write-Host "  26. Clean Temporary Files on a range of PCs"
-    Write-Host "  27. Clean Temporary Files on ALL PCs (PC-1 to PC-35)"
+    Write-Host "█ UTILITIES & LAB MAINTENANCE" -ForegroundColor Magenta
+    Write-Host "  16. Sync Time/Date/Timezone to ALL PCs from Server"
+    Write-Host "  17. Clean up backup hosts files on ALL PCs"
+    Write-Host "  18. View all PC hosts files"
+    Write-Host "  19. Export MySQL Database (Single, Range, or ALL PCs)"
+    Write-Host "  20. Check/Fix Android & Java Environment Variables"
+    Write-Host "  21. Clean Temporary Files (Single, Range, or ALL PCs)"
     Write-Host ""
     Write-Host "=============================================" -ForegroundColor Cyan
     Write-Host "Type 'clear' to clear screen | Type 'exit' to quit" -ForegroundColor DarkGray
@@ -270,6 +269,7 @@ Write-Host "Loading block lists from: $blockListsFolder" -ForegroundColor Cyan
 $script:blockedSites = @()
 $script:blockListStats = @{}
 $script:aiSitesOnly = @()
+$script:socialSitesOnly = @()
 
 # Check if BlockLists folder exists
 if (Test-Path $blockListsFolder) {
@@ -287,8 +287,11 @@ if (Test-Path $blockListsFolder) {
         $blockedSites += $sites
         
         if ($file.BaseName -eq "ai-sites") {
-            $aiSitesOnly = $sites
+            $script:aiSitesOnly = $sites
             Write-Host "    Added $($sites.Count) AI sites (available for AI-only blocking)" -ForegroundColor DarkCyan
+        } elseif ($file.BaseName -eq "social-media") {
+            $script:socialSitesOnly = $sites
+            Write-Host "    Added $($sites.Count) Social Media sites (available for Social-only blocking)" -ForegroundColor DarkCyan
         } else {
             Write-Host "    Added $($sites.Count) sites from $($file.Name)" -ForegroundColor DarkGray
         }
@@ -321,7 +324,7 @@ $null = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
         # Main program loop
 do {
     Show-Menu
-    $choice = Read-Host "Enter your choice (1-27, 'clear', or 'exit')"
+    $choice = Read-Host "Enter your choice (1-21, 'clear', or 'exit')"
 
     # Handle special commands
     if ($choice -eq 'exit') {
@@ -426,97 +429,73 @@ do {
             }
         }
         
-        # ===== WEB BLOCKING =====
+        # ===== WEB & PROTOCOL BLOCKING =====
         '9' {
-            $pc = Read-Host "Enter the PC name (e.g., PC-1)"
-            $targets = @($pc)
-            Invoke-WebBlocking -Targets $targets -BlockedSites $blockedSites
+            $targets = Get-TargetSelection -ActionTitle "Block ALL Categories"
+            if ($targets) { Invoke-WebBlocking -Targets $targets -BlockedSites $blockedSites -CategoryName "ALL CATEGORIES" }
         }
         '10' {
-            $start = Read-Host "Enter start number (e.g., 5)"
-            $end   = Read-Host "Enter end number (e.g., 10)"
-            $targets = foreach ($i in $start..$end) { "PC-$i" }
-            Invoke-WebBlocking -Targets $targets -BlockedSites $blockedSites
+            $targets = Get-TargetSelection -ActionTitle "Block AI Sites ONLY"
+            if ($targets) { Invoke-AIBlocking -Targets $targets -AISites $aiSitesOnly }
         }
         '11' {
-            $targets = foreach ($i in 1..35) { "PC-$i" }
-            Invoke-WebBlocking -Targets $targets -BlockedSites $blockedSites
+            $targets = Get-TargetSelection -ActionTitle "Block Social Media ONLY"
+            if ($targets) { Invoke-SocialMediaBlocking -Targets $targets -SocialSites $socialSitesOnly }
         }
         '12' {
-            $pc = Read-Host "Enter the PC name (e.g., PC-1)"
-            $targets = @($pc)
-            Invoke-WebUnblocking -Targets $targets
+            $targets = Get-TargetSelection -ActionTitle "Block AI + Social Media [Focus Mode]"
+            if ($targets) { Invoke-FocusModeBlocking -Targets $targets -AISites $aiSitesOnly -SocialSites $socialSitesOnly }
         }
         '13' {
-            $start = Read-Host "Enter start number (e.g., 5)"
-            $end   = Read-Host "Enter end number (e.g., 10)"
-            $targets = foreach ($i in $start..$end) { "PC-$i" }
-            Invoke-WebUnblocking -Targets $targets
+            $targets = Get-TargetSelection -ActionTitle "Unblock Web Access"
+            if ($targets) { Invoke-WebUnblocking -Targets $targets }
         }
         '14' {
-            $targets = foreach ($i in 1..35) { "PC-$i" }
-            Invoke-WebUnblocking -Targets $targets
-        }
-        '15' {
             Invoke-DeepScan
         }
-        '16' {
+        '15' {
             Show-BlockLists -BlockedSites $blockedSites -BlockListsFolder $blockListsFolder
         }
-        '17' {
-            Write-Host "===== AI SITES BLOCKING (ALL PCs) =====" -ForegroundColor Yellow
-            Write-Host "This will block ONLY AI sites from ai-sites.txt ($($aiSitesOnly.Count) sites)" -ForegroundColor Cyan
-            Write-Host "Other sites (social media, video, gaming, shopping) will remain accessible" -ForegroundColor Gray
-            Write-Host ""
-            
-            $targets = foreach ($i in 1..35) { "PC-$i" }
-            Invoke-AIBlocking -Targets $targets -AISites $aiSitesOnly
-        }
         
-        # ===== UTILITIES =====
-        '18' {
+        # ===== UTILITIES & LAB MAINTENANCE =====
+        '16' {
             Sync-TimeToAllPCs
         }
-        '19' {
+        '17' {
             Invoke-BackupCleanup
         }
-        '20' {
+        '18' {
             Show-AllHostsFiles
         }
+        '19' {
+            $targets = Get-TargetSelection -ActionTitle "Export MySQL Databases"
+            if ($targets) {
+                $desc = if ($targets.Count -eq 1) { "Single PC: $($targets[0])" } elseif ($targets.Count -ge 35) { "ALL PCs" } else { "Range of $($targets.Count) PCs" }
+                Export-MySQLDatabases -Targets $targets -ExportType $desc -ScriptPath $scriptPath
+            }
+        }
+        '20' {
+            Test-AndroidJavaEnvironment
+        }
         '21' {
-            $pc = Read-Host "Enter the PC name (e.g., PC-1)"
-            $targets = @($pc)
-            Export-MySQLDatabases -Targets $targets -ExportType "Single PC: $pc" -ScriptPath $scriptPath
+            $targets = Get-TargetSelection -ActionTitle "Clean Temporary Files"
+            if ($targets) { Clear-TempFiles -Targets $targets }
         }
-        '22' {
-            $start = Read-Host "Enter start number (e.g., 5)"
-            $end   = Read-Host "Enter end number (e.g., 10)"
-            $targets = foreach ($i in $start..$end) { "PC-$i" }
-            Export-MySQLDatabases -Targets $targets -ExportType "Range: PC-$start to PC-$end" -ScriptPath $scriptPath
-        }
-        '23' {
-            $targets = foreach ($i in 1..35) { "PC-$i" }
-            Export-MySQLDatabases -Targets $targets -ExportType "ALL PCs" -ScriptPath $scriptPath
+        
+        # ===== BACKWARD-COMPATIBLE ALIASES =====
+        { $_ -in '22', '23' } {
+            $targets = Get-TargetSelection -ActionTitle "Export MySQL Databases"
+            if ($targets) {
+                $desc = if ($targets.Count -eq 1) { "Single PC: $($targets[0])" } elseif ($targets.Count -ge 35) { "ALL PCs" } else { "Range of $($targets.Count) PCs" }
+                Export-MySQLDatabases -Targets $targets -ExportType $desc -ScriptPath $scriptPath
+            }
         }
         '24' {
             Test-AndroidJavaEnvironment
         }
-        
-        # ===== TEMP CLEANING =====
-        '25' {
-            $pc = Read-Host "Enter the PC name (e.g., PC-1)"
-            $targets = @($pc)
-            Clear-TempFiles -Targets $targets
-        }
-        '26' {
-            $start = Read-Host "Enter start number (e.g., 5)"
-            $end   = Read-Host "Enter end number (e.g., 10)"
-            $targets = foreach ($i in $start..$end) { "PC-$i" }
-            Clear-TempFiles -Targets $targets
-        }
-        '27' {
-            $targets = foreach ($i in 1..35) { "PC-$i" }
-            Clear-TempFiles -Targets $targets
+        { $_ -in '25', '26', '27' } {
+            $targets = Get-TargetSelection -ActionTitle "Clean Temporary Files"
+            if ($targets) { Clear-TempFiles -Targets $targets }
         }
         
         default {

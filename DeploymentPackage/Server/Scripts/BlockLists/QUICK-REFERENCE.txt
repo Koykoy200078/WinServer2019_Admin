@@ -5,13 +5,14 @@
 📁 FOLDER STRUCTURE:
 --------------------
 Desktop/
-  ├── AA.ps1 (Main Script)
+  ├── Main.ps1 (Main Script)
   └── BlockLists/
-      ├── social-media.txt (40+ sites)
-      ├── video-sites.txt (40+ sites)
-      ├── gaming-sites.txt (60+ sites)
-      ├── ai-sites.txt (40+ sites)
-      ├── shopping-entertainment.txt (35+ sites)
+      ├── social-media.txt (150+ sites)
+      ├── video-sites.txt (430+ sites)
+      ├── gaming-sites.txt (450+ sites)
+      ├── ai-sites.txt (290+ sites)
+      ├── shopping-entertainment.txt (450+ sites)
+      ├── search-engines.txt (270+ sites)
       ├── README.txt (Information)
       ├── SITE-LIST.txt (Full documentation)
       └── View-BlockLists.ps1 (Quick viewer)
@@ -20,10 +21,10 @@ Desktop/
 
 🎯 HOW IT WORKS:
 ----------------
-1. Run AA.ps1 from Desktop
+1. Run Main.ps1
 2. Script automatically loads ALL .txt files from BlockLists folder
 3. Ignores comment lines (starting with #)
-4. Blocks all sites by redirecting to 127.0.0.1
+4. Blocks all sites via HOSTS (0.0.0.0/127.0.0.1) + Anti-DoH + Firewall UDP/TCP
 
 # ==================================================================
 
@@ -36,7 +37,7 @@ METHOD 1 - Add individual sites:
      newsite.com
      www.newsite.com
   3. Save file
-  4. Run AA.ps1 again
+  4. Run Main.ps1 again
 
 METHOD 2 - Remove sites:
   1. Open the category file

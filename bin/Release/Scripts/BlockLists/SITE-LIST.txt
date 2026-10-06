@@ -1,7 +1,7 @@
 # ============================================
 # BLOCK LIST CATEGORIES AND SITE COUNTS
 # ============================================
-# Last Updated: October 2, 2025
+# Last Updated: 2026 Lab Security Update
 #
 # This folder contains organized block lists
 # for different categories of websites.
@@ -11,47 +11,50 @@
 CATEGORY FILES:
 ---------------
 
-1. social-media.txt
-   - Facebook, Instagram, Twitter/X, TikTok
-   - Snapchat, LinkedIn, Pinterest, Reddit
-   - Discord, Telegram, WhatsApp, Threads
-   - ~40+ social media platforms
+1. ai-sites.txt
+   - OpenAI (ChatGPT, API, Sora), Anthropic Claude, Google Gemini/Bard
+   - DeepSeek, Perplexity, Microsoft Copilot, Grok (xAI)
+   - AI Coding: Cursor, v0, Bolt.new, Replit, Codeium, Tabnine
+   - AI Media: Midjourney, Suno, Udio, ElevenLabs, Runway, Civitai
+   - Writing/Essay: QuillBot, Grammarly, NovelAI, Character.AI, JanitorAI
+   - ~298+ AI models, APIs, and assistant sites
 
-2. video-sites.txt
-   - YouTube, Netflix, Hulu, Disney+
-   - Twitch, Vimeo, HBO Max, Prime Video
-   - Crunchyroll, Peacock, ESPN
-   - ~40+ video streaming platforms
+2. social-media.txt
+   - Facebook, Messenger, Instagram, Threads, WhatsApp
+   - TikTok, Douyin, Lemon8, ByteDance CDN
+   - Twitter / X, Bluesky, Mastodon, Reddit
+   - Discord, Telegram, WeChat, LINE, Snapchat, BeReal, Kick, Omegle
+   - ~150+ social media and messaging platforms
 
-3. gaming-sites.txt
-   - Roblox, Steam, Epic Games, Origin
-   - Online game sites (Miniclip, Poki, Y8)
-   - Console sites (PlayStation, Xbox, Nintendo)
-   - Fortnite, Minecraft, League of Legends
-   - ~60+ gaming platforms
+3. video-sites.txt
+   - YouTube, Netflix, Hulu, Disney+, Prime Video
+   - Twitch, Vimeo, HBO Max, Crunchyroll, Peacock, ESPN
+   - ~434+ video streaming platforms
 
-4. ai-sites.txt
-   - ChatGPT, Claude, Bard/Gemini
-   - Character.AI, Midjourney, Stable Diffusion
-   - Hugging Face, Replika, Jasper
-   - Copy.AI, QuillBot, Grammarly
-   - ~40+ AI and chatbot sites
+4. gaming-sites.txt
+   - Roblox, Steam, Epic Games, Riot Games, Blizzard, Origin
+   - Online game portals (Miniclip, Poki, Y8, CrazyGames)
+   - Console networks (PlayStation Network, Xbox Live, Nintendo Online)
+   - ~454+ gaming platforms
 
 5. shopping-entertainment.txt
-   - Amazon, eBay, AliExpress, Walmart
-   - Spotify, Pandora, SoundCloud
-   - Apple Music, YouTube Music
-   - ~35+ shopping and music sites
+   - Amazon, eBay, AliExpress, Shopee, Lazada, Walmart
+   - Spotify, SoundCloud, Apple Music
+   - ~459+ shopping and lifestyle sites
+
+6. search-engines.txt
+   - Google, Yahoo, DuckDuckGo, Baidu, Yandex, Ecosia
+   - ~276+ search engines
 
 ============================================
-TOTAL SITES BLOCKED: 200+
+TOTAL SITES ACROSS ALL LISTS: 2,071+
 ============================================
 
 HOW TO USE:
 -----------
-1. Run AA.ps1 script
+1. Run Main.ps1 script
 2. The script automatically loads ALL sites from these files
-3. Choose options 8-13 to block/unblock PCs
+3. Choose options 9-13 to block/unblock PCs (supports Single PC, Range, or ALL PCs)
 
 HOW TO CUSTOMIZE:
 -----------------

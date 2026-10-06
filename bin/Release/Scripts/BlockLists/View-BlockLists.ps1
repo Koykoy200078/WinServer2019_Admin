@@ -10,7 +10,7 @@ Write-Host ""
 
 # Get all category files
 $categoryFiles = Get-ChildItem -Path $blockListsFolder -Filter "*.txt" | 
-    Where-Object { $_.Name -notin @("README.txt", "SITE-LIST.txt") }
+    Where-Object { $_.Name -notin @("README.txt", "SITE-LIST.txt", "QUICK-REFERENCE.txt") }
 
 $totalSites = 0
 

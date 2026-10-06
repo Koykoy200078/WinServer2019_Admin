@@ -87,10 +87,10 @@ metager.org
 www.metager.org
 mojeek.com
 www.mojeek.com
-brave.com/search
+brave.com
 search.brave.com
-you.com/search
-www.you.com/search
+you.com
+www.you.com
 neeva.com
 www.neeva.com
 kagi.com
@@ -165,20 +165,20 @@ video.yahoo.com
 video.bing.com
 blinkx.com
 www.blinkx.com
-veoh.com/search
-dailymotion.com/search
-vimeo.com/search
+veoh.com
+dailymotion.com
+vimeo.com
 
 # Image Search
 tineye.com
 www.tineye.com
 images.bing.com
 images.yahoo.com
-flickr.com/search
-pixabay.com/search
-unsplash.com/search
-shutterstock.com/search
-getty.com/search
+flickr.com
+pixabay.com
+unsplash.com
+shutterstock.com
+getty.com
 
 # News Search
 news.bing.com
@@ -191,7 +191,7 @@ www.topix.com
 # Regional Search Engines
 ask.com
 www.ask.com
-aol.com/search
+aol.com
 search.aol.com
 excite.com
 www.excite.com
@@ -248,12 +248,12 @@ excite.co.jp
 www.excite.co.jp
 searchina.ne.jp
 www.searchina.ne.jp
-rakuten.co.jp/search
+rakuten.co.jp
 terra.com.br
 www.terra.com.br
-uol.com.br/busca
+uol.com.br
 busca.uol.com.br
-globo.com/busca
+globo.com
 busca.globo.com
 yahoo.com.br
 br.yahoo.com
@@ -265,8 +265,6 @@ bing.co.uk
 uk.bing.com
 
 # Meta Search Engines
-dogpile.com
-www.dogpile.com
 zoo.com
 www.zoo.com
 monstercrawler.com
@@ -279,7 +277,7 @@ www.searchalot.com
 # Privacy-Focused Search
 privatesearch.io
 www.privatesearch.io
-disconnect.me/search
+disconnect.me
 search.disconnect.me
 oscobo.com
 www.oscobo.com
@@ -297,6 +295,5 @@ grams.onion
 # Internal Microsoft/Windows Search
 cortana.com
 www.cortana.com
-bing.com/search
 search.msn.com
-msn.com/search
+msn.com

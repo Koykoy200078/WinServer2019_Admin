@@ -1,4 +1,4 @@
-﻿namespace WinServer2019
+namespace WinServer2019
 {
     partial class MainActivity : System.Windows.Forms.Form
     {
@@ -320,7 +320,7 @@
             this.btnBlockAISites.Name = "btnBlockAISites";
             this.btnBlockAISites.Size = new System.Drawing.Size(330, 35);
             this.btnBlockAISites.TabIndex = 8;
-            this.btnBlockAISites.Text = "Block AI Sites ONLY - ALL PCs";
+            this.btnBlockAISites.Text = "Targeted Blocking (AI / Social / Focus)";
             this.btnBlockAISites.Click += new System.EventHandler(this.BtnBlockAISites_Click);
             // 
             // tabUtilities

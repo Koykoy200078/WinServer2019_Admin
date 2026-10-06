@@ -15,7 +15,7 @@ amazon.com.br
 amazon.com.mx
 amazon.co.jp
 smile.amazon.com
-primevideo.com/offers
+primevideo.com
 ebay.com
 www.ebay.com
 ebay.co.uk
@@ -219,7 +219,6 @@ deezer.com
 www.deezer.com
 tidal.com
 www.tidal.com
-apple.com/music
 music.apple.com
 music.youtube.com
 www.music.youtube.com
@@ -241,13 +240,13 @@ spinrilla.com
 www.spinrilla.com
 reverbnation.com
 www.reverbnation.com
-myspace.com/music
-www.myspace.com/music
+myspace.com
+www.myspace.com
 jamendo.com
 www.jamendo.com
 freemusicarchive.org
 www.freemusicarchive.org
-archive.org/details/audio
+archive.org
 ccmixter.org
 www.ccmixter.org
 incompetech.com
@@ -264,8 +263,8 @@ premiumbeat.com
 www.premiumbeat.com
 audiojungle.net
 www.audiojungle.net
-pond5.com/royalty-free-music
-www.pond5.com/royalty-free-music
+pond5.com
+www.pond5.com
 
 # Podcasts & Audio
 podcast.app
@@ -384,8 +383,8 @@ www.io9.com
 # Online Marketplaces & Classifieds
 craigslist.org
 www.craigslist.org
-facebook.com/marketplace
-www.facebook.com/marketplace
+facebook.com
+www.facebook.com
 offerup.com
 www.offerup.com
 mercari.com
@@ -410,8 +409,6 @@ gilt.com
 www.gilt.com
 rue.com
 www.rue.com
-gilt.com
-www.gilt.com
 hautelook.com
 www.hautelook.com
 ideeli.com

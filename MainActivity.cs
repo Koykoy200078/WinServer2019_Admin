@@ -370,13 +370,171 @@ namespace WinServer2019
 
         private void BtnBlockAISites_Click(object sender, EventArgs e)
         {
-            if (ConfirmAction("Block AI sites only on ALL PCs?"))
+            using (var optionForm = new Form())
             {
-                string script = @"
-                    $targets = 1..35 | ForEach-Object { ""PC-$_.$script:targetDomain"" }
-                    Invoke-AIBlocking -Targets $targets -AISites $script:aiSitesOnly
-                ";
-                ExecutePowerShellCommand(script, "Blocking AI sites on all PCs...");
+                optionForm.Text = "Targeted Web & Protocol Blocking";
+                optionForm.Size = new System.Drawing.Size(430, 370);
+                optionForm.StartPosition = FormStartPosition.CenterParent;
+                optionForm.FormBorderStyle = FormBorderStyle.FixedDialog;
+                optionForm.MaximizeBox = false;
+                optionForm.MinimizeBox = false;
+
+                Label lblCategory = new Label
+                {
+                    Text = "Select Category to Block:",
+                    Location = new System.Drawing.Point(20, 15),
+                    Size = new System.Drawing.Size(380, 20),
+                    Font = new System.Drawing.Font("Segoe UI", 9.5f, System.Drawing.FontStyle.Bold)
+                };
+
+                RadioButton rbAI = new RadioButton
+                {
+                    Text = "AI Sites ONLY (ChatGPT, Claude, Gemini, DeepSeek, etc.)",
+                    Location = new System.Drawing.Point(30, 40),
+                    Size = new System.Drawing.Size(360, 24),
+                    Checked = true
+                };
+
+                RadioButton rbSocial = new RadioButton
+                {
+                    Text = "Social Media ONLY (Facebook, TikTok, Instagram, X, etc.)",
+                    Location = new System.Drawing.Point(30, 68),
+                    Size = new System.Drawing.Size(360, 24)
+                };
+
+                RadioButton rbFocus = new RadioButton
+                {
+                    Text = "Focus Mode (Block Both AI + Social Media)",
+                    Location = new System.Drawing.Point(30, 96),
+                    Size = new System.Drawing.Size(360, 24)
+                };
+
+                RadioButton rbAllCategories = new RadioButton
+                {
+                    Text = "ALL Categories (Full Lockdown)",
+                    Location = new System.Drawing.Point(30, 124),
+                    Size = new System.Drawing.Size(360, 24)
+                };
+
+                Label lblTarget = new Label
+                {
+                    Text = "Select Target PCs:",
+                    Location = new System.Drawing.Point(20, 155),
+                    Size = new System.Drawing.Size(380, 20),
+                    Font = new System.Drawing.Font("Segoe UI", 9.5f, System.Drawing.FontStyle.Bold)
+                };
+
+                RadioButton rbTargetAll = new RadioButton
+                {
+                    Text = "ALL PCs (PC-1 to PC-35)",
+                    Location = new System.Drawing.Point(30, 180),
+                    Size = new System.Drawing.Size(360, 24),
+                    Checked = true
+                };
+
+                RadioButton rbTargetSingle = new RadioButton
+                {
+                    Text = "Single PC",
+                    Location = new System.Drawing.Point(30, 206),
+                    Size = new System.Drawing.Size(360, 24)
+                };
+
+                RadioButton rbTargetRange = new RadioButton
+                {
+                    Text = "Range of PCs",
+                    Location = new System.Drawing.Point(30, 232),
+                    Size = new System.Drawing.Size(360, 24)
+                };
+
+                Button btnApply = new Button
+                {
+                    Text = "Apply Blocking",
+                    DialogResult = DialogResult.OK,
+                    Location = new System.Drawing.Point(170, 275),
+                    Size = new System.Drawing.Size(120, 32),
+                    Font = new System.Drawing.Font("Segoe UI", 9f, System.Drawing.FontStyle.Bold)
+                };
+
+                Button btnCancel = new Button
+                {
+                    Text = "Cancel",
+                    DialogResult = DialogResult.Cancel,
+                    Location = new System.Drawing.Point(300, 275),
+                    Size = new System.Drawing.Size(90, 32)
+                };
+
+                optionForm.Controls.AddRange(new Control[] {
+                    lblCategory, rbAI, rbSocial, rbFocus, rbAllCategories,
+                    lblTarget, rbTargetAll, rbTargetSingle, rbTargetRange,
+                    btnApply, btnCancel
+                });
+                optionForm.AcceptButton = btnApply;
+                optionForm.CancelButton = btnCancel;
+
+                if (optionForm.ShowDialog() == DialogResult.OK)
+                {
+                    string targetExpr = "";
+                    string targetDesc = "";
+
+                    if (rbTargetSingle.Checked)
+                    {
+                        string pcNumber = PromptForInput("Enter PC number (1-35):");
+                        if (string.IsNullOrEmpty(pcNumber)) return;
+                        targetExpr = $@"@(""PC-{pcNumber}.$script:targetDomain"")";
+                        targetDesc = $"PC-{pcNumber}";
+                    }
+                    else if (rbTargetRange.Checked)
+                    {
+                        string start = PromptForInput("Enter start PC number:");
+                        string end = PromptForInput("Enter end PC number:");
+                        if (string.IsNullOrEmpty(start) || string.IsNullOrEmpty(end)) return;
+                        targetExpr = $@"{start}..{end} | ForEach-Object {{ ""PC-$_.$script:targetDomain"" }}";
+                        targetDesc = $"PCs {start} to {end}";
+                    }
+                    else
+                    {
+                        targetExpr = @"1..35 | ForEach-Object { ""PC-$_.$script:targetDomain"" }";
+                        targetDesc = "all 35 PCs";
+                    }
+
+                    string script = "";
+                    string actionMsg = "";
+
+                    if (rbAI.Checked)
+                    {
+                        script = $@"
+                            $targets = {targetExpr}
+                            Invoke-AIBlocking -Targets $targets -AISites $script:aiSitesOnly
+                        ";
+                        actionMsg = $"Applying AI Sites blocking on {targetDesc}...";
+                    }
+                    else if (rbSocial.Checked)
+                    {
+                        script = $@"
+                            $targets = {targetExpr}
+                            Invoke-SocialMediaBlocking -Targets $targets -SocialSites $script:socialSitesOnly
+                        ";
+                        actionMsg = $"Applying Social Media blocking on {targetDesc}...";
+                    }
+                    else if (rbFocus.Checked)
+                    {
+                        script = $@"
+                            $targets = {targetExpr}
+                            Invoke-FocusModeBlocking -Targets $targets -AISites $script:aiSitesOnly -SocialSites $script:socialSitesOnly
+                        ";
+                        actionMsg = $"Applying Focus Mode (AI + Social) blocking on {targetDesc}...";
+                    }
+                    else
+                    {
+                        script = $@"
+                            $targets = {targetExpr}
+                            Invoke-WebBlocking -Targets $targets -BlockedSites $script:blockedSites -CategoryName 'ALL CATEGORIES'
+                        ";
+                        actionMsg = $"Applying Full Web Blocking on {targetDesc}...";
+                    }
+
+                    ExecutePowerShellCommand(script, actionMsg);
+                }
             }
         }
 
