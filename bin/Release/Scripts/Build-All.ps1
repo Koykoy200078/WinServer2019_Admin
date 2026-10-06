@@ -111,11 +111,18 @@ if (Test-Path "\\192.168.2.45\Sharing\Other") {
     try {
         # Copy server
         Copy-Item -Path (Join-Path $serverDir "WinServer2019.exe") -Destination "$networkShare\Server\" -Force
+        Copy-Item -Path (Join-Path $serverDir "WinServer2019.pdb") -Destination "$networkShare\Server\" -Force -ErrorAction SilentlyContinue
         Write-ColorOutput "  ✓ Server deployed to network" "Green"
         
         # Copy client files
         Copy-Item -Path (Join-Path $clientDir "*") -Destination "$networkShare\Client\" -Recurse -Force
-        Write-ColorOutput "  ✓ Client deployed to network" "Green"
+        Write-ColorOutput "  ✓ Client deployed to network package" "Green"
+
+        # Also copy client directly to PCMonitor share if accessible
+        if (Test-Path "\\192.168.2.45\Sharing\PCMonitor") {
+            Copy-Item -Path (Join-Path $clientDir "*") -Destination "\\192.168.2.45\Sharing\PCMonitor\" -Recurse -Force
+            Write-ColorOutput "  ✓ Client deployed to \\192.168.2.45\Sharing\PCMonitor" "Green"
+        }
         
         # Copy scripts
         Copy-Item -Path "$scriptsDir\*" -Destination "$networkShare\Scripts\" -Force
@@ -328,10 +335,8 @@ Write-ColorOutput "  • Length-prefixed protocol (handles up to 10MB messages)"
 Write-ColorOutput "  • Smart resolution scaling with aspect ratio preservation" "White"
 Write-ColorOutput "  • Numerical PC name sorting (PC-1, PC-2, PC-20, PC-30)" "White"
 Write-ColorOutput "  • Social media detection tags (🔴 FACEBOOK, TWITTER, etc.)" "White"
-Write-ColorOutput "  • 📨 Send custom messages to selected PCs (displays on screen)" "Green"
-Write-ColorOutput "  • ⚠ Freeze screen for 3 seconds with warning message" "Green"
-Write-ColorOutput "  • Marquee message display with fullscreen overlay" "Green"
-Write-ColorOutput "  • Server-to-client command system (bidirectional communication)" "Green"
+Write-ColorOutput "  • Message sending UI (click 📨 icon in Actions column)" "White"
+Write-ColorOutput "  • Screen freeze UI (click ⚠ icon - server commands coming soon)" "White"
 
 if (Test-Path "\\192.168.2.45\Sharing\Other") {
     Write-ColorOutput "`n🌐 Network Deployment:" "Cyan"

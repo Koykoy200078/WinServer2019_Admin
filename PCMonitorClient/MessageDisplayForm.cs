@@ -10,14 +10,22 @@ namespace PCMonitorClient
         private Label lblMessage;
         private Timer closeTimer;
         private int duration;
+        private bool blockInput;
+        private Font _messageFont;
 
         // P/Invoke to block input
         [DllImport("user32.dll")]
         private static extern bool BlockInput(bool fBlockIt);
 
         public MessageDisplayForm(string message, int durationSeconds)
+            : this(message, durationSeconds, false)
         {
-            duration = durationSeconds;
+        }
+
+        public MessageDisplayForm(string message, int durationSeconds, bool blockInput)
+        {
+            this.duration = Math.Max(1, durationSeconds);
+            this.blockInput = blockInput;
             InitializeComponent(message);
         }
 
@@ -32,14 +40,15 @@ namespace PCMonitorClient
             this.ShowInTaskbar = false;
             this.StartPosition = FormStartPosition.Manual;
             this.Bounds = Screen.PrimaryScreen.Bounds;
-            this.Cursor = Cursors.No;
+            this.Cursor = blockInput ? Cursors.No : Cursors.Default;
 
             // Message label - centered
+            _messageFont = new Font("Segoe UI", 36, FontStyle.Bold);
             lblMessage = new Label
             {
                 AutoSize = false,
-                Font = new Font("Segoe UI", 36, FontStyle.Bold),
-                ForeColor = Color.Yellow,
+                Font = _messageFont,
+                ForeColor = blockInput ? Color.Red : Color.Yellow,
                 BackColor = Color.Transparent,
                 TextAlign = ContentAlignment.MiddleCenter,
                 Text = message,
@@ -56,20 +65,26 @@ namespace PCMonitorClient
             closeTimer.Tick += (s, e) =>
             {
                 closeTimer?.Stop();
-                BlockInput(false); // Unblock input
+                if (blockInput) BlockInput(false);
                 this.Close();
             };
 
-            // Block keyboard/mouse input
+            // Block keyboard/mouse input if requested
             this.Load += (s, e) =>
             {
-                BlockInput(true);
+                if (blockInput)
+                {
+                    BlockInput(true);
+                }
                 closeTimer.Start();
             };
 
             this.FormClosing += (s, e) =>
             {
-                BlockInput(false); // Ensure input is unblocked
+                if (blockInput)
+                {
+                    BlockInput(false); // Ensure input is unblocked
+                }
             };
         }
 
@@ -79,15 +94,28 @@ namespace PCMonitorClient
             {
                 closeTimer?.Stop();
                 closeTimer?.Dispose();
-                BlockInput(false); // Ensure input is unblocked
+                _messageFont?.Dispose();
+                if (blockInput)
+                {
+                    BlockInput(false);
+                }
             }
             base.Dispose(disposing);
         }
 
-        // Prevent Alt+F4 and other key combinations
+        // Handle keys
         protected override bool ProcessDialogKey(Keys keyData)
         {
-            return true; // Block all keys
+            if (!blockInput)
+            {
+                // For normal messages, allow student to dismiss with Enter, Escape, or Space
+                if (keyData == Keys.Escape || keyData == Keys.Enter || keyData == Keys.Space)
+                {
+                    this.Close();
+                    return true;
+                }
+            }
+            return true; // Block other keys during overlay
         }
     }
 }

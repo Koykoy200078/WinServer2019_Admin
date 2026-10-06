@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -22,6 +22,7 @@ namespace WinServer2019
         private PowerShellExecutor psExecutor;
         private System.Threading.CancellationTokenSource cancellationTokenSource;
         private bool isExecuting = false;
+        private MonitoringForm _monitoringForm;
 
         public MainActivity(string user, string pass, string dom)
         {
@@ -683,8 +684,20 @@ namespace WinServer2019
         {
             try
             {
-                var monitoringForm = new MonitoringForm();
-                monitoringForm.Show();
+                if (_monitoringForm != null && !_monitoringForm.IsDisposed)
+                {
+                    if (_monitoringForm.WindowState == FormWindowState.Minimized)
+                    {
+                        _monitoringForm.WindowState = FormWindowState.Normal;
+                    }
+                    _monitoringForm.BringToFront();
+                    _monitoringForm.Activate();
+                    return;
+                }
+
+                _monitoringForm = new MonitoringForm();
+                _monitoringForm.FormClosed += (s, args) => _monitoringForm = null;
+                _monitoringForm.Show();
             }
             catch (Exception ex)
             {
@@ -697,6 +710,11 @@ namespace WinServer2019
         {
             if (ConfirmAction("Are you sure you want to exit?"))
             {
+                if (_monitoringForm != null && !_monitoringForm.IsDisposed)
+                {
+                    try { _monitoringForm.Close(); } catch { }
+                    _monitoringForm = null;
+                }
                 psExecutor?.Dispose();
             }
             else

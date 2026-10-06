@@ -16,7 +16,7 @@ Lab-administration suite for the CSIT computer lab: domain `csitlab.local`, serv
 - MSBuild isn't on PATH. Use VS 2026 (v18): `& "C:\Program Files\Microsoft Visual Studio\18\Professional\MSBuild\Current\Bin\MSBuild.exe" WinServer2019.csproj -p:Configuration=Release`
 - Client: same command with `PCMonitorClient\PCMonitorClient.csproj`.
 - No restore needed: Newtonsoft.Json 13.0.3 is committed in the root `packages/` folder (both csproj HintPaths point there).
-- Expected warning CS2002: `ScreenViewerForm.Designer.cs` is listed twice in the csproj.
+- Warning CS2002 resolved (duplicate ScreenViewerForm.Designer.cs entry removed from csproj).
 - Post-build `xcopy`s `Scripts\` → `bin\<Config>\Scripts\`, which is tracked. Check `git diff bin/` after building.
 - To check that it builds without touching tracked outputs, append `-p:OutputPath=<tmp>\bin\ -p:BaseIntermediateOutputPath=<tmp>\obj\ -p:IntermediateOutputPath=<tmp>\obj\Release\`.
 - `pwsh -File Scripts\Build-All.ps1` — Release-rebuilds both projects, **deletes and regenerates `DeploymentPackage/`**, and copies to `\\192.168.2.45\Sharing\Other\DeploymentPackage` if that share is reachable. Only the copy in `Scripts/` resolves the repo root correctly.
@@ -28,9 +28,8 @@ Lab-administration suite for the CSIT computer lab: domain `csitlab.local`, serv
 - Embedded PS is in `@"…"` strings (write `"` as `""`). `MainActivity` builds scripts with `$@"…"` (literal PS braces = `{{ }}`).
 - User input is interpolated into PS strings; escape `'` → `''` the way `BtnCustomCommand_Click` does. (`InitializeRunspace` interpolates the password without escaping.)
 - `Write-Host` output reaches the GUI through the Information stream; `ExecuteCommand` forwards every stream to `outputCallback` in real time.
-- Each `MonitoringForm` creates its own `MonitoringServer` on port 8888: a second window can't bind, and closing the window stops the server.
+- Each `MonitoringForm` creates its own `MonitoringServer` on port 8888: `MainActivity` enforces a single instance (bringing an existing window to front), preventing port 8888 conflicts. Closing the window stops the server.
 - **`Scripts/` is an orphaned gitlink** (mode 160000, no `.gitmodules`): its files aren't versioned and edits never show in `git status`. Tracked copies live in `bin/Debug/Scripts/`, `bin/Release/Scripts/` and `DeploymentPackage/Server/Scripts/` (plus `DeploymentPackage/Scripts/` for the deploy scripts). They drift apart.
-- **Run the repo's `.ps1` files with `pwsh` 7+**: they're UTF-8 without a BOM and use ✓/✗/█/emoji, so Windows PowerShell 5.1 (ANSI code page) fails to parse 12 of the 14 scripts. New scripts should be ASCII-only or UTF-8 *with* a BOM.
 - `Deploy-MonitoringClient.ps1` only works from `DeploymentPackage/Scripts/`; run from the repo root, its client path resolves one folder too high.
 - `.gitignore` covers caches only: `.vs/`, `obj/`, `bin/` (except `bin/<Config>/Scripts/`), and script runtime output (`Scripts/Reports/`, `Scripts/MySQL-Exports-*/`). `DeploymentPackage/` binaries, `packages/` and `*.csproj.user` are still tracked — stage source files explicitly, and ask before committing regenerated binaries.
 - Hardcoded lab admin credentials exist (LoginForm's "default credentials" checkbox, `Main.ps1`, several docs). Don't copy them anywhere new.
@@ -43,12 +42,12 @@ Lab-administration suite for the CSIT computer lab: domain `csitlab.local`, serv
 
 ## Monitoring protocol
 - Client → server: 4-byte little-endian length + UTF-8 JSON `ClientActivity` (≤10 MB, includes a 720p JPEG at quality 50), sent every 2 s; reconnects after 5 s.
-- Server → client: plain `ACK` or a JSON `ServerCommand` (`CommandType` `message`|`freeze`, `MessageText`, `Duration` in s). This reply is **not length-prefixed** and the client does a single 4 KB read, so keep commands small or add framing on both ends.
+- Server → client: 4-byte little-endian length prefix + UTF-8 payload (plain `ACK` or JSON `ServerCommand` with `CommandType` `message`|`freeze`, `MessageText`, `Duration` in s). Handled with length-prefix framing on both ends.
 - `ClientActivity`/`ServerCommand` are duplicated in `MonitoringServer.cs` and `PCMonitorClient/MonitoringClient.cs`; change both.
 - Commands queue per PC name (the client's `Environment.MachineName`) and go out on that client's next update. The server drops clients that are silent for more than 30 s.
 - `PCMonitorClient.exe [serverIP] [port]` — defaults `192.168.2.45 8888` are hardcoded in `Program.cs` (`App.config` appSettings are unused); a mutex keeps it single-instance.
 - Deploy target: `C:\ProgramData\PCMonitor`, scheduled task `PCMonitorClient` (at logon, `BUILTIN\Users`), server firewall rule "PC Monitor Server" (TCP 8888 inbound).
-- The `ScreenViewerForm` quality dropdown does nothing; the client always sends 720p.
+- The `ScreenViewerForm` quality dropdown sends a `quality` command to the client (25%, 50%, 75%, 100%), which dynamically adjusts the JPEG capture resolution and compression quality.
 
 ## Conventions
 - C# 7.3 (.NET Framework default): designer-backed forms, UI updates marshalled through `InvokeRequired`/`Invoke`, CRLF line endings.

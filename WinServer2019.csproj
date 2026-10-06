@@ -125,9 +125,6 @@
     <Compile Include="PowerShellExecutor.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ScreenViewerForm.Designer.cs">
-      <DependentUpon>ScreenViewerForm.cs</DependentUpon>
-    </Compile>
     <EmbeddedResource Include="MainActivity.resx">
       <DependentUpon>MainActivity.cs</DependentUpon>
     </EmbeddedResource>

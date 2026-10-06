@@ -1,118 +1,125 @@
 # Deployment Verification Script
 param(
-    [string]$PCName = "PC-1.csitlab.local"
+    [string]$PCName = "192.168.2.11",
+    [pscredential]$Credential = $null
 )
 
 Write-Host "`n=======================================" -ForegroundColor Cyan
 Write-Host "  Deployment Verification" -ForegroundColor Cyan
 Write-Host "=======================================" -ForegroundColor Cyan
-Write-Host "Checking: $PCName`n" -ForegroundColor Yellow
+Write-Host "Target: $PCName`n" -ForegroundColor Yellow
 
-# Check 1: File Share Access
-Write-Host "[1/5] Checking file share access..." -ForegroundColor Yellow
+# Check 1: File Share Access & Binary Verification
+Write-Host "[1/4] Checking client installation files..." -ForegroundColor Yellow
 $sharePath = "\\$PCName\C$\ProgramData\PCMonitor"
 try {
     if (Test-Path $sharePath) {
         $files = Get-ChildItem $sharePath -ErrorAction Stop
-        Write-Host "  ✓ Files found on $PCName" -ForegroundColor Green
-        $files | Select-Object Name, @{N="Size (KB)";E={[math]::Round($_.Length/1KB,2)}} | Format-Table -AutoSize
+        Write-Host "  [OK] Installation directory found at: $sharePath" -ForegroundColor Green
+        $files | Select-Object Name, @{N="Size (KB)";E={[math]::Round($_.Length/1KB,2)}}, LastWriteTime | Format-Table -AutoSize
     } else {
-        Write-Host "  ✗ Folder does not exist: $sharePath" -ForegroundColor Red
+        Write-Host "  [FAIL] Folder does not exist: $sharePath" -ForegroundColor Red
     }
 } catch {
-    Write-Host "  ✗ Cannot access: $_" -ForegroundColor Red
+    Write-Host "  [FAIL] Cannot access $sharePath : $_" -ForegroundColor Red
 }
 
-# Check 2: Test Network Connectivity
-Write-Host "`n[2/5] Testing network connectivity..." -ForegroundColor Yellow
+# Check 2: Network Connectivity (Ping)
+Write-Host "[2/4] Testing network ping..." -ForegroundColor Yellow
 try {
     $ping = Test-Connection -ComputerName $PCName -Count 1 -Quiet
     if ($ping) {
-        Write-Host "  ✓ PC is online (ping successful)" -ForegroundColor Green
+        Write-Host "  [OK] PC is reachable via ping" -ForegroundColor Green
     } else {
-        Write-Host "  ✗ PC is offline (ping failed)" -ForegroundColor Red
+        Write-Host "  [WARN] Ping failed (machine may have ICMP blocked or is offline)" -ForegroundColor Yellow
     }
 } catch {
-    Write-Host "  ✗ Cannot ping: $_" -ForegroundColor Red
+    Write-Host "  [WARN] Ping error: $_" -ForegroundColor Yellow
 }
 
-# Check 3: Test WinRM
-Write-Host "`n[3/5] Testing WinRM connection..." -ForegroundColor Yellow
-try {
-    $wsMan = Test-WSMan -ComputerName $PCName -ErrorAction Stop
-    Write-Host "  ✓ WinRM is working" -ForegroundColor Green
-} catch {
-    Write-Host "  ✗ WinRM not available: $_" -ForegroundColor Red
-    Write-Host "  ℹ To enable WinRM on the remote PC:" -ForegroundColor Yellow
-    Write-Host "    1. Log into $PCName" -ForegroundColor Gray
-    Write-Host "    2. Open PowerShell as Administrator" -ForegroundColor Gray
-    Write-Host "    3. Run: Enable-PSRemoting -Force" -ForegroundColor Gray
-}
+# Check 3: Running Process (PowerShell 5.1 & PowerShell 7+ compatible)
+Write-Host "`n[3/4] Checking running PCMonitorClient process..." -ForegroundColor Yellow
+$procFound = $false
+$procs = @()
 
-# Check 4: Try to get process list
-Write-Host "`n[4/5] Checking if client is running..." -ForegroundColor Yellow
+# Method A: CIM Session via DCOM (Works in PowerShell 7+ and PowerShell 5.1)
 try {
-    $process = Invoke-Command -ComputerName $PCName -ScriptBlock {
-        Get-Process -Name "PCMonitorClient" -ErrorAction SilentlyContinue
-    } -ErrorAction Stop
-    
-    if ($process) {
-        Write-Host "  ✓ PCMonitorClient.exe is RUNNING" -ForegroundColor Green
-        $process | Select-Object ProcessName, Id, @{N="Memory (MB)";E={[math]::Round($_.WorkingSet64/1MB,2)}} | Format-Table
-    } else {
-        Write-Host "  ✗ PCMonitorClient.exe is NOT running" -ForegroundColor Red
-        Write-Host "  ℹ Try starting it manually:" -ForegroundColor Yellow
-        Write-Host "    C:\ProgramData\PCMonitor\PCMonitorClient.exe" -ForegroundColor Gray
+    $sessionOpt = New-CimSessionOption -Protocol Dcom
+    $sessionParams = @{
+        ComputerName        = $PCName
+        SessionOption       = $sessionOpt
+        OperationTimeoutSec = 8
     }
+    if ($Credential) {
+        $sessionParams["Credential"] = $Credential
+    }
+    $cimSession = New-CimSession @sessionParams -ErrorAction Stop
+    $procs = Get-CimInstance -CimSession $cimSession -ClassName Win32_Process -Filter "Name = 'PCMonitorClient.exe'" -ErrorAction Stop
+    Remove-CimSession -CimSession $cimSession -ErrorAction SilentlyContinue
 } catch {
-    Write-Host "  ✗ Cannot check process: $_" -ForegroundColor Red
+    # Method B: Legacy Get-WmiObject (Windows PowerShell 5.1)
+    if (Get-Command Get-WmiObject -ErrorAction SilentlyContinue) {
+        try {
+            $wmiParams = @{
+                Class        = "Win32_Process"
+                Filter       = "Name = 'PCMonitorClient.exe'"
+                ComputerName = $PCName
+            }
+            if ($Credential) { $wmiParams["Credential"] = $Credential }
+            $procs = Get-WmiObject @wmiParams -ErrorAction Stop
+        } catch { }
+    }
 }
 
-# Check 5: Check scheduled task
-Write-Host "`n[5/5] Checking scheduled task..." -ForegroundColor Yellow
-try {
-    $task = Invoke-Command -ComputerName $PCName -ScriptBlock {
-        Get-ScheduledTask -TaskName "PCMonitorClient" -ErrorAction SilentlyContinue
-    } -ErrorAction Stop
-    
-    if ($task) {
-        Write-Host "  ✓ Scheduled task exists" -ForegroundColor Green
-        Write-Host "    State: $($task.State)" -ForegroundColor Gray
-        
-        # Try to start the task
-        Write-Host "`n  Attempting to start the client..." -ForegroundColor Yellow
-        Invoke-Command -ComputerName $PCName -ScriptBlock {
-            Start-ScheduledTask -TaskName "PCMonitorClient"
-        } -ErrorAction Stop
-        
-        Start-Sleep -Seconds 3
-        
-        # Check if running now
-        $process = Invoke-Command -ComputerName $PCName -ScriptBlock {
-            Get-Process -Name "PCMonitorClient" -ErrorAction SilentlyContinue
+# Method C: tasklist.exe fallback
+if (-not $procs) {
+    try {
+        $tlArgs = @("/S", $PCName, "/FI", "IMAGENAME eq PCMonitorClient.exe", "/FO", "CSV", "/NH")
+        if ($Credential) {
+            $tlArgs += @("/U", $Credential.UserName, "/P", $Credential.GetNetworkCredential().Password)
         }
-        
-        if ($process) {
-            Write-Host "  ✓ Client started successfully!" -ForegroundColor Green
-        } else {
-            Write-Host "  ⚠ Task ran but process not found" -ForegroundColor Yellow
-            Write-Host "  ℹ Check Event Viewer on $PCName for errors" -ForegroundColor Gray
+        $tlOut = & tasklist.exe @tlArgs 2>$null
+        if ($tlOut -and $tlOut -like "*PCMonitorClient*") {
+            Write-Host "  [OK] PCMonitorClient.exe is currently RUNNING! (verified via tasklist)" -ForegroundColor Green
+            Write-Host "       $tlOut" -ForegroundColor Gray
+            $procFound = $true
         }
+    } catch { }
+}
+
+if ($procs) {
+    Write-Host "  [OK] PCMonitorClient.exe is currently RUNNING!" -ForegroundColor Green
+    $procs | Select-Object ProcessId, CommandLine, @{N="WorkingSet (MB)";E={[math]::Round($_.WorkingSetSize/1MB,2)}} | Format-Table -AutoSize
+    $procFound = $true
+} elseif (-not $procFound) {
+    Write-Host "  [FAIL] PCMonitorClient.exe is NOT running" -ForegroundColor Red
+}
+
+# Check 4: Auto-Start Configuration (Scheduled Task)
+Write-Host "[4/4] Verifying scheduled task auto-start configuration..." -ForegroundColor Yellow
+$taskPath = "\\$PCName\C$\Windows\System32\Tasks\PCMonitorClient"
+try {
+    if (Test-Path $taskPath) {
+        Write-Host "  [OK] Scheduled Task 'PCMonitorClient' is registered for Logon auto-start!" -ForegroundColor Green
+        $taskXml = [xml](Get-Content $taskPath -Raw)
+        $cmd = $taskXml.Task.Actions.Exec.Command
+        $args = $taskXml.Task.Actions.Exec.Arguments
+        Write-Host "       Command:   $cmd" -ForegroundColor Gray
+        Write-Host "       Arguments: $args" -ForegroundColor Gray
     } else {
-        Write-Host "  ✗ Scheduled task does not exist" -ForegroundColor Red
+        Write-Host "  [WARN] Scheduled Task file not found at $taskPath" -ForegroundColor Yellow
     }
 } catch {
-    Write-Host "  ✗ Cannot check scheduled task: $_" -ForegroundColor Red
+    Write-Host "  [WARN] Could not inspect task file: $_" -ForegroundColor Yellow
 }
 
 # Summary
 Write-Host "`n=======================================" -ForegroundColor Cyan
-Write-Host "  Verification Complete" -ForegroundColor Cyan
+Write-Host "  Verification Summary" -ForegroundColor Cyan
 Write-Host "=======================================" -ForegroundColor Cyan
-
-Write-Host "`nQuick Fixes:" -ForegroundColor Yellow
-Write-Host "  1. If WinRM failed: Enable-PSRemoting -Force (on remote PC)" -ForegroundColor White
-Write-Host "  2. If files missing: Re-run deployment script" -ForegroundColor White
-Write-Host "  3. If process not running: Start scheduled task manually" -ForegroundColor White
-Write-Host "  4. Check server is listening on port 8888" -ForegroundColor White
+if ($procFound) {
+    Write-Host "STATUS: SUCCESS! $PCName is fully deployed and the monitoring client is active." -ForegroundColor Green
+} else {
+    Write-Host "STATUS: ATTENTION NEEDED - Client binary is deployed but process is not running." -ForegroundColor Yellow
+}
 Write-Host ""

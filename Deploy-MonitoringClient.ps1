@@ -19,8 +19,11 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 if ($scriptDir -like "*DeploymentPackage*") {
     # Running from deployment package
     $clientPath = Join-Path (Split-Path -Parent $scriptDir) "Client"
+} elseif (Test-Path (Join-Path $scriptDir "PCMonitorClient\bin\Release")) {
+    # Running directly from repo root
+    $clientPath = Join-Path $scriptDir "PCMonitorClient\bin\Release"
 } else {
-    # Running from source (for development)
+    # Running from Scripts subfolder
     $projectRoot = Split-Path -Parent $scriptDir
     $clientPath = Join-Path $projectRoot "PCMonitorClient\bin\Release"
 }

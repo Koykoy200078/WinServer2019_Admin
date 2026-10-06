@@ -33,6 +33,7 @@ namespace WinServer2019
         public bool IsActive { get; set; }
         public byte[] ScreenshotData { get; set; }
         public ServerCommand PendingCommand { get; set; }
+        public string ConnectionId { get; set; }
     }
 
     public class MonitoringServer : IDisposable
@@ -40,7 +41,7 @@ namespace WinServer2019
         private TcpListener listener;
         private CancellationTokenSource cancellationTokenSource;
         private readonly ConcurrentDictionary<string, ClientActivity> clientActivities;
-        private readonly ConcurrentDictionary<string, Queue<ServerCommand>> commandQueues;
+        private readonly ConcurrentDictionary<string, ConcurrentQueue<ServerCommand>> commandQueues;
         private readonly int port = 8888;
         private bool isRunning = false;
 
@@ -51,7 +52,16 @@ namespace WinServer2019
         public MonitoringServer()
         {
             clientActivities = new ConcurrentDictionary<string, ClientActivity>();
-            commandQueues = new ConcurrentDictionary<string, Queue<ServerCommand>>();
+            commandQueues = new ConcurrentDictionary<string, ConcurrentQueue<ServerCommand>>();
+        }
+
+        private void SafeLog(string msg)
+        {
+            try
+            {
+                OnLogMessage?.Invoke(msg);
+            }
+            catch { }
         }
 
         public void Start()
@@ -65,7 +75,7 @@ namespace WinServer2019
                 listener.Start();
                 isRunning = true;
 
-                OnLogMessage?.Invoke($"Monitoring server started on port {port}");
+                SafeLog($"Monitoring server started on port {port}");
 
                 // Start accepting clients
                 Task.Run(() => AcceptClientsAsync(cancellationTokenSource.Token));
@@ -75,7 +85,7 @@ namespace WinServer2019
             }
             catch (Exception ex)
             {
-                OnLogMessage?.Invoke($"Error starting server: {ex.Message}");
+                SafeLog($"Error starting server: {ex.Message}");
                 throw;
             }
         }
@@ -88,13 +98,17 @@ namespace WinServer2019
             {
                 isRunning = false;
                 cancellationTokenSource?.Cancel();
+                cancellationTokenSource?.Dispose();
+                cancellationTokenSource = null;
                 listener?.Stop();
+                listener = null;
                 clientActivities.Clear();
-                OnLogMessage?.Invoke("Monitoring server stopped");
+                commandQueues.Clear();
+                SafeLog("Monitoring server stopped");
             }
             catch (Exception ex)
             {
-                OnLogMessage?.Invoke($"Error stopping server: {ex.Message}");
+                SafeLog($"Error stopping server: {ex.Message}");
             }
         }
 
@@ -121,8 +135,24 @@ namespace WinServer2019
                 {
                     if (!token.IsCancellationRequested)
                     {
-                        OnLogMessage?.Invoke($"Error accepting client: {ex.Message}");
+                        SafeLog($"Error accepting client: {ex.Message}");
                     }
+                }
+            }
+        }
+
+        private async Task<int> ReadWithTimeoutAsync(NetworkStream stream, byte[] buffer, int offset, int count, int timeoutMs, CancellationToken token)
+        {
+            using (var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(token))
+            {
+                timeoutCts.CancelAfter(timeoutMs);
+                try
+                {
+                    return await stream.ReadAsync(buffer, offset, count, timeoutCts.Token);
+                }
+                catch (OperationCanceledException) when (!token.IsCancellationRequested)
+                {
+                    throw new TimeoutException($"Client read timed out after {timeoutMs / 1000} seconds of inactivity.");
                 }
             }
         }
@@ -130,22 +160,21 @@ namespace WinServer2019
         private async Task HandleClientAsync(TcpClient client, CancellationToken token)
         {
             string clientId = null;
+            string connectionId = Guid.NewGuid().ToString();
             NetworkStream stream = null;
 
             try
             {
                 stream = client.GetStream();
-                stream.ReadTimeout = 30000; // 30 second timeout
-                stream.WriteTimeout = 10000; // 10 second timeout
 
                 while (!token.IsCancellationRequested && client.Connected)
                 {
-                    // Read message length first (4 bytes)
+                    // Read message length first (4 bytes) with 30s timeout to prevent hanging async tasks
                     byte[] lengthBuffer = new byte[4];
                     int lengthBytesRead = 0;
                     while (lengthBytesRead < 4)
                     {
-                        int read = await stream.ReadAsync(lengthBuffer, lengthBytesRead, 4 - lengthBytesRead, token);
+                        int read = await ReadWithTimeoutAsync(stream, lengthBuffer, lengthBytesRead, 4 - lengthBytesRead, 30000, token);
                         if (read == 0) return; // Connection closed
                         lengthBytesRead += read;
                     }
@@ -155,16 +184,16 @@ namespace WinServer2019
                     // Validate message length (max 10 MB)
                     if (messageLength <= 0 || messageLength > 10 * 1024 * 1024)
                     {
-                        OnLogMessage?.Invoke($"Invalid message length: {messageLength}");
+                        SafeLog($"Invalid message length: {messageLength}");
                         break;
                     }
 
-                    // Read the full message
+                    // Read the full message with 30s timeout
                     byte[] buffer = new byte[messageLength];
                     int totalBytesRead = 0;
                     while (totalBytesRead < messageLength)
                     {
-                        int bytesRead = await stream.ReadAsync(buffer, totalBytesRead, messageLength - totalBytesRead, token);
+                        int bytesRead = await ReadWithTimeoutAsync(stream, buffer, totalBytesRead, messageLength - totalBytesRead, 30000, token);
                         if (bytesRead == 0) return; // Connection closed
                         totalBytesRead += bytesRead;
                     }
@@ -175,24 +204,29 @@ namespace WinServer2019
                     if (activity != null)
                     {
                         clientId = activity.PCName;
+                        activity.ConnectionId = connectionId;
                         activity.LastUpdate = DateTime.Now;
                         activity.IsActive = true;
 
+                        // Use verified physical socket endpoint for IP to eliminate virtual adapter / wrong NIC reports
+                        if (client.Client.RemoteEndPoint is IPEndPoint ep)
+                        {
+                            activity.IPAddress = ep.Address.ToString();
+                        }
+
                         clientActivities.AddOrUpdate(clientId, activity, (key, old) => activity);
-                        OnClientUpdate?.Invoke(activity);
+                        try
+                        {
+                            OnClientUpdate?.Invoke(activity);
+                        }
+                        catch { }
                     }
 
                     // Check for pending commands and send them, otherwise send ACK
                     ServerCommand pendingCommand = null;
-                    if (commandQueues.TryGetValue(clientId, out var queue))
+                    if (clientId != null && commandQueues.TryGetValue(clientId, out var queue))
                     {
-                        lock (queue)
-                        {
-                            if (queue.Count > 0)
-                            {
-                                pendingCommand = queue.Dequeue();
-                            }
-                        }
+                        queue.TryDequeue(out pendingCommand);
                     }
 
                     string response;
@@ -206,7 +240,10 @@ namespace WinServer2019
                     }
 
                     byte[] responseData = Encoding.UTF8.GetBytes(response);
-                    await stream.WriteAsync(responseData, 0, responseData.Length, token);
+                    byte[] combinedResponse = new byte[4 + responseData.Length];
+                    Buffer.BlockCopy(BitConverter.GetBytes(responseData.Length), 0, combinedResponse, 0, 4);
+                    Buffer.BlockCopy(responseData, 0, combinedResponse, 4, responseData.Length);
+                    await stream.WriteAsync(combinedResponse, 0, combinedResponse.Length, token);
                     await stream.FlushAsync();
                 }
             }
@@ -214,18 +251,28 @@ namespace WinServer2019
             {
                 if (!token.IsCancellationRequested)
                 {
-                    OnLogMessage?.Invoke($"Client error ({clientId}): {ex.Message}");
+                    SafeLog($"Client error ({clientId ?? "unknown"}): {ex.Message}");
                 }
             }
             finally
             {
                 if (clientId != null)
                 {
-                    clientActivities.TryRemove(clientId, out _);
-                    OnClientDisconnected?.Invoke(clientId);
+                    // Only remove if this connection is still the active one for this client
+                    if (clientActivities.TryGetValue(clientId, out var current) && current.ConnectionId == connectionId)
+                    {
+                        if (clientActivities.TryRemove(clientId, out _))
+                        {
+                            try
+                            {
+                                OnClientDisconnected?.Invoke(clientId);
+                            }
+                            catch { }
+                        }
+                    }
                 }
-                stream?.Dispose();
-                client?.Dispose();
+                try { stream?.Dispose(); } catch { }
+                try { client?.Dispose(); } catch { }
             }
         }
 
@@ -240,14 +287,21 @@ namespace WinServer2019
                     var now = DateTime.Now;
                     var inactiveClients = clientActivities
                         .Where(c => (now - c.Value.LastUpdate).TotalSeconds > 30)
-                        .Select(c => c.Key)
+                        .Select(c => new { Key = c.Key, ConnectionId = c.Value.ConnectionId })
                         .ToList();
 
-                    foreach (var clientId in inactiveClients)
+                    foreach (var inactive in inactiveClients)
                     {
-                        if (clientActivities.TryRemove(clientId, out _))
+                        if (clientActivities.TryGetValue(inactive.Key, out var current) && current.ConnectionId == inactive.ConnectionId)
                         {
-                            OnClientDisconnected?.Invoke(clientId);
+                            if (clientActivities.TryRemove(inactive.Key, out _))
+                            {
+                                try
+                                {
+                                    OnClientDisconnected?.Invoke(inactive.Key);
+                                }
+                                catch { }
+                            }
                         }
                     }
                 }
@@ -257,7 +311,7 @@ namespace WinServer2019
                 }
                 catch (Exception ex)
                 {
-                    OnLogMessage?.Invoke($"Cleanup error: {ex.Message}");
+                    SafeLog($"Cleanup error: {ex.Message}");
                 }
             }
         }
@@ -274,12 +328,9 @@ namespace WinServer2019
 
         public void SendCommand(string pcName, ServerCommand command)
         {
-            var queue = commandQueues.GetOrAdd(pcName, _ => new Queue<ServerCommand>());
-            lock (queue)
-            {
-                queue.Enqueue(command);
-            }
-            OnLogMessage?.Invoke($"Command queued for {pcName}: {command.CommandType}");
+            var queue = commandQueues.GetOrAdd(pcName, _ => new ConcurrentQueue<ServerCommand>());
+            queue.Enqueue(command);
+            SafeLog($"Command queued for {pcName}: {command.CommandType}");
         }
 
         public ClientActivity GetClientActivity(string pcName)
@@ -291,7 +342,7 @@ namespace WinServer2019
         public void Dispose()
         {
             Stop();
-            cancellationTokenSource?.Dispose();
+            commandQueues.Clear();
         }
     }
 }

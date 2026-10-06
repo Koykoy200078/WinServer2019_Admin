@@ -41,6 +41,10 @@ namespace PCMonitorClient
         private ActivityMonitor monitor;
         private CancellationTokenSource cancellationTokenSource;
         private bool isRunning = false;
+        private string screenshotResolution = "720p";
+        private int screenshotQuality = 50;
+        private static readonly object _messageSync = new object();
+        private static MessageDisplayForm _currentMessageForm = null;
 
         public MonitoringClient(string serverIp, int port)
         {
@@ -100,16 +104,23 @@ namespace PCMonitorClient
         {
             try
             {
+                Disconnect();
                 client = new TcpClient();
                 // Increase buffer sizes for faster transfer
                 client.ReceiveBufferSize = 256 * 1024; // 256 KB
                 client.SendBufferSize = 256 * 1024; // 256 KB
                 client.NoDelay = true; // Disable Nagle's algorithm for lower latency
                 
-                await client.ConnectAsync(serverIP, serverPort);
-                stream = client.GetStream();
-                stream.ReadTimeout = 10000; // 10 second timeout
-                stream.WriteTimeout = 10000;
+                var connectTask = client.ConnectAsync(serverIP, serverPort);
+                if (await Task.WhenAny(connectTask, Task.Delay(5000)) == connectTask)
+                {
+                    await connectTask;
+                    stream = client.GetStream();
+                }
+                else
+                {
+                    Disconnect();
+                }
             }
             catch
             {
@@ -125,8 +136,8 @@ namespace PCMonitorClient
                 var activeProcess = monitor.GetActiveProcessName();
                 monitor.LogActivity(activeWindow, activeProcess);
 
-                // Capture screenshot (50% quality, 720p for better clarity and speed)
-                byte[] screenshot = monitor.CaptureScreenshot(50, "720p");
+                // Capture screenshot
+                byte[] screenshot = monitor.CaptureScreenshot(screenshotQuality, screenshotResolution);
 
                 var activity = new ClientActivity
                 {
@@ -155,23 +166,44 @@ namespace PCMonitorClient
                 await stream.WriteAsync(data, 0, data.Length);
                 await stream.FlushAsync();
 
-                // Wait for server response (command or ACK)
-                byte[] buffer = new byte[4096];
-                int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-                string response = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-
-                // Check if response is a command (not just ACK)
-                if (response != "ACK")
+                // Wait for length-prefixed server response with 10s timeout to prevent hanging
+                using (var readCts = new CancellationTokenSource(10000))
                 {
-                    try
+                    byte[] lengthBuffer = new byte[4];
+                    int lengthRead = 0;
+                    while (lengthRead < 4)
                     {
-                        var command = JsonConvert.DeserializeObject<ServerCommand>(response);
-                        if (command != null)
+                        int read = await stream.ReadAsync(lengthBuffer, lengthRead, 4 - lengthRead, readCts.Token);
+                        if (read == 0) throw new System.IO.IOException("Server closed connection");
+                        lengthRead += read;
+                    }
+
+                    int responseLength = BitConverter.ToInt32(lengthBuffer, 0);
+                    if (responseLength > 0 && responseLength < 10 * 1024 * 1024)
+                    {
+                        byte[] responseBuffer = new byte[responseLength];
+                        int totalRead = 0;
+                        while (totalRead < responseLength)
                         {
-                            HandleCommand(command);
+                            int read = await stream.ReadAsync(responseBuffer, totalRead, responseLength - totalRead, readCts.Token);
+                            if (read == 0) throw new System.IO.IOException("Server closed connection");
+                            totalRead += read;
+                        }
+
+                        string response = Encoding.UTF8.GetString(responseBuffer, 0, responseLength);
+                        if (response != "ACK")
+                        {
+                            try
+                            {
+                                var command = JsonConvert.DeserializeObject<ServerCommand>(response);
+                                if (command != null)
+                                {
+                                    HandleCommand(command);
+                                }
+                            }
+                            catch { } // Ignore JSON parsing errors
                         }
                     }
-                    catch { } // Ignore JSON parsing errors
                 }
             }
             catch
@@ -185,15 +217,71 @@ namespace PCMonitorClient
         {
             try
             {
+                if (command.CommandType == "quality" || command.CommandType == "set_quality")
+                {
+                    if (!string.IsNullOrEmpty(command.MessageText))
+                    {
+                        string q = command.MessageText.ToLower();
+                        if (q.Contains("480"))
+                        {
+                            screenshotResolution = "480p";
+                            screenshotQuality = 40;
+                        }
+                        else if (q.Contains("1080"))
+                        {
+                            screenshotResolution = "1080p";
+                            screenshotQuality = 60;
+                        }
+                        else
+                        {
+                            screenshotResolution = "720p";
+                            screenshotQuality = 50;
+                        }
+                    }
+                    return;
+                }
+
                 if (command.CommandType == "message" || command.CommandType == "freeze")
                 {
+                    lock (_messageSync)
+                    {
+                        if (_currentMessageForm != null && !_currentMessageForm.IsDisposed)
+                        {
+                            try
+                            {
+                                _currentMessageForm.Invoke(new Action(() => _currentMessageForm.Close()));
+                            }
+                            catch { }
+                        }
+                    }
+
                     // Run on a separate thread to avoid blocking the monitoring loop
                     System.Threading.Thread messageThread = new System.Threading.Thread(() =>
                     {
                         try
                         {
-                            var messageForm = new MessageDisplayForm(command.MessageText, command.Duration);
-                            messageForm.ShowDialog();
+                            bool isFreeze = command.CommandType == "freeze";
+                            using (var messageForm = new MessageDisplayForm(command.MessageText, command.Duration, isFreeze))
+                            {
+                                lock (_messageSync)
+                                {
+                                    _currentMessageForm = messageForm;
+                                }
+                                try
+                                {
+                                    messageForm.ShowDialog();
+                                }
+                                finally
+                                {
+                                    lock (_messageSync)
+                                    {
+                                        if (_currentMessageForm == messageForm)
+                                        {
+                                            _currentMessageForm = null;
+                                        }
+                                    }
+                                }
+                            }
                         }
                         catch (Exception ex)
                         {

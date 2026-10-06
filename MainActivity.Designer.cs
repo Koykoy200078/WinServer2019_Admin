@@ -126,6 +126,7 @@
             this.tabControl.Controls.Add(this.tabPCManagement);
             this.tabControl.Controls.Add(this.tabWebBlocking);
             this.tabControl.Controls.Add(this.tabUtilities);
+            this.tabControl.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.tabControl.Location = new System.Drawing.Point(12, 80);
             this.tabControl.Name = "tabControl";
             this.tabControl.SelectedIndex = 0;
@@ -143,10 +144,10 @@
             this.tabPCManagement.Controls.Add(this.btnRestartRange);
             this.tabPCManagement.Controls.Add(this.btnRestartAll);
             this.tabPCManagement.Controls.Add(this.btnCustomCommand);
-            this.tabPCManagement.Location = new System.Drawing.Point(4, 22);
+            this.tabPCManagement.Location = new System.Drawing.Point(4, 29);
             this.tabPCManagement.Name = "tabPCManagement";
             this.tabPCManagement.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPCManagement.Size = new System.Drawing.Size(352, 374);
+            this.tabPCManagement.Size = new System.Drawing.Size(352, 367);
             this.tabPCManagement.TabIndex = 0;
             this.tabPCManagement.Text = "PC Management";
             // 
@@ -437,9 +438,9 @@
             this.btnClearOutput.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnClearOutput.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.btnClearOutput.ForeColor = System.Drawing.Color.White;
-            this.btnClearOutput.Location = new System.Drawing.Point(1252, 79);
+            this.btnClearOutput.Location = new System.Drawing.Point(1573, 79);
             this.btnClearOutput.Name = "btnClearOutput";
-            this.btnClearOutput.Size = new System.Drawing.Size(90, 30);
+            this.btnClearOutput.Size = new System.Drawing.Size(156, 30);
             this.btnClearOutput.TabIndex = 5;
             this.btnClearOutput.Text = "Clear";
             this.btnClearOutput.UseVisualStyleBackColor = false;
@@ -452,9 +453,9 @@
             this.btnStopExecution.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnStopExecution.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.btnStopExecution.ForeColor = System.Drawing.Color.White;
-            this.btnStopExecution.Location = new System.Drawing.Point(1347, 79);
+            this.btnStopExecution.Location = new System.Drawing.Point(1735, 79);
             this.btnStopExecution.Name = "btnStopExecution";
-            this.btnStopExecution.Size = new System.Drawing.Size(90, 30);
+            this.btnStopExecution.Size = new System.Drawing.Size(157, 30);
             this.btnStopExecution.TabIndex = 6;
             this.btnStopExecution.Text = "Stop";
             this.btnStopExecution.UseVisualStyleBackColor = false;
@@ -479,7 +480,7 @@
             this.lblDomain.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.lblDomain.Location = new System.Drawing.Point(12, 50);
             this.lblDomain.Name = "lblDomain";
-            this.lblDomain.Size = new System.Drawing.Size(1425, 20);
+            this.lblDomain.Size = new System.Drawing.Size(1880, 20);
             this.lblDomain.TabIndex = 3;
             this.lblDomain.Text = "Domain: csitlab.local";
             this.lblDomain.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -490,7 +491,7 @@
             this.lblWelcome.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(120)))), ((int)(((byte)(215)))));
             this.lblWelcome.Location = new System.Drawing.Point(12, 15);
             this.lblWelcome.Name = "lblWelcome";
-            this.lblWelcome.Size = new System.Drawing.Size(1425, 30);
+            this.lblWelcome.Size = new System.Drawing.Size(1880, 30);
             this.lblWelcome.TabIndex = 4;
             this.lblWelcome.Text = "PC MANAGEMENT SYSTEM";
             this.lblWelcome.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -499,9 +500,9 @@
             // 
             this.statusStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.statusLabel});
-            this.statusStrip.Location = new System.Drawing.Point(0, 493);
+            this.statusStrip.Location = new System.Drawing.Point(0, 1019);
             this.statusStrip.Name = "statusStrip";
-            this.statusStrip.Size = new System.Drawing.Size(1449, 22);
+            this.statusStrip.Size = new System.Drawing.Size(1904, 22);
             this.statusStrip.TabIndex = 2;
             // 
             // statusLabel
@@ -518,7 +519,7 @@
             this.rtbOutput.Location = new System.Drawing.Point(380, 115);
             this.rtbOutput.Name = "rtbOutput";
             this.rtbOutput.ReadOnly = true;
-            this.rtbOutput.Size = new System.Drawing.Size(1057, 365);
+            this.rtbOutput.Size = new System.Drawing.Size(1512, 901);
             this.rtbOutput.TabIndex = 1;
             this.rtbOutput.Text = "Output console...\n";
             // 
@@ -526,7 +527,8 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1449, 515);
+            this.AutoSize = true;
+            this.ClientSize = new System.Drawing.Size(1904, 1041);
             this.Controls.Add(this.statusStrip);
             this.Controls.Add(this.btnMonitoring);
             this.Controls.Add(this.btnStopExecution);

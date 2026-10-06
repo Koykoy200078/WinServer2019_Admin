@@ -54,26 +54,26 @@
     </dependentAssembly>
   </dependency>
   <dependency>
-    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="System.Management.Automation.dll" size="1661784">
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="System.Management.Automation.dll" size="1669048">
       <assemblyIdentity name="System.Management.Automation" version="3.0.0.0" publicKeyToken="31BF3856AD364E35" language="neutral" processorArchitecture="msil" />
       <hash>
         <dsig:Transforms>
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>fakk+U/MNCfOs5jtE3wEY/ewPi+6zHJrxnW2SMNR2WQ=</dsig:DigestValue>
+        <dsig:DigestValue>COLpp8eQXBHOiMCHtbe/+nAQZsmGihUNVhQ7fCjgYic=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>
   <dependency>
-    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="WinServer2019.exe" size="140712">
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="WinServer2019.exe" size="153512">
       <assemblyIdentity name="WinServer2019" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
       <hash>
         <dsig:Transforms>
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>DHaJmozO8n0vFLpbmp49CI6Hd0GZlvRtFtK3r2jrJ98=</dsig:DigestValue>
+        <dsig:DigestValue>AYcEpZLR0fMKJmYdBEiHcXeCFU2BFnteefJCbe6kaaQ=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>
