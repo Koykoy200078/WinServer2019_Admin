@@ -334,38 +334,48 @@ namespace WinServer2019
 
         private void SaveSnapshot()
         {
-            if (pictureBox.Image == null)
+            Image snapshotToSave = null;
+            if (pictureBox.Image != null)
+            {
+                try
+                {
+                    snapshotToSave = (Image)pictureBox.Image.Clone();
+                }
+                catch { }
+            }
+
+            if (snapshotToSave == null)
             {
                 MessageBox.Show("No screen image is currently available to save.", "Save Snapshot", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
-            try
+            using (snapshotToSave)
             {
-                string defaultFileName = $"{pcName}_{DateTime.Now:yyyyMMdd_HHmmss}.png";
-                using (var sfd = new SaveFileDialog())
+                try
                 {
-                    sfd.Title = $"Save Screenshot - {pcName}";
-                    sfd.Filter = "PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg";
-                    sfd.FileName = defaultFileName;
-                    if (sfd.ShowDialog(this) == DialogResult.OK)
+                    string defaultFileName = $"{pcName}_{DateTime.Now:yyyyMMdd_HHmmss}.png";
+                    using (var sfd = new SaveFileDialog())
                     {
-                        var format = sfd.FileName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
-                            ? System.Drawing.Imaging.ImageFormat.Jpeg
-                            : System.Drawing.Imaging.ImageFormat.Png;
-
-                        using (var clone = new Bitmap(pictureBox.Image))
+                        sfd.Title = $"Save Screenshot - {pcName}";
+                        sfd.Filter = "PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg";
+                        sfd.FileName = defaultFileName;
+                        if (sfd.ShowDialog(this) == DialogResult.OK)
                         {
-                            clone.Save(sfd.FileName, format);
+                            var format = sfd.FileName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
+                                ? System.Drawing.Imaging.ImageFormat.Jpeg
+                                : System.Drawing.Imaging.ImageFormat.Png;
+
+                            snapshotToSave.Save(sfd.FileName, format);
+                            lblStatus.Text = $"Snapshot saved successfully: {Path.GetFileName(sfd.FileName)}";
+                            lblStatus.ForeColor = Color.LightGreen;
                         }
-                        lblStatus.Text = $"Snapshot saved successfully: {Path.GetFileName(sfd.FileName)}";
-                        lblStatus.ForeColor = Color.LightGreen;
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Failed to save snapshot: {ex.Message}", "Save Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to save snapshot: {ex.Message}", "Save Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
 

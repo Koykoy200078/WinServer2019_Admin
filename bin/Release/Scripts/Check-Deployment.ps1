@@ -1,4 +1,4 @@
-﻿# Deployment Verification Script
+# Deployment Verification Script
 param(
     [string]$PCName = "192.168.2.11",
     [pscredential]$Credential = $null
@@ -93,7 +93,18 @@ if (-not $procs) {
 
 if ($procs) {
     Write-Host "  [OK] PCMonitorClient.exe is currently RUNNING!" -ForegroundColor Green
-    $procs | Select-Object ProcessId, CommandLine, @{N="WorkingSet (MB)";E={[math]::Round($_.WorkingSetSize/1MB,2)}} | Format-Table -AutoSize
+    $procs | Select-Object ProcessId, SessionId, CommandLine, @{N="WorkingSet (MB)";E={[math]::Round($_.WorkingSetSize/1MB,2)}} | Format-Table -AutoSize
+    
+    # Check if process is running in Session 0 (non-interactive) vs Session 1+ (interactive desktop)
+    $session0Proc = $procs | Where-Object { $_.SessionId -eq 0 }
+    $interactiveProc = $procs | Where-Object { $_.SessionId -gt 0 }
+    
+    if ($interactiveProc) {
+        Write-Host "  [OK] Process is active in interactive user session (Session $($interactiveProc.SessionId -join ', ')) - screen capture enabled!" -ForegroundColor Green
+    } elseif ($session0Proc) {
+        Write-Host "  [WARN] Process is running in Session 0 (service/background session)." -ForegroundColor Yellow
+        Write-Host "         Desktop screen capture requires the user to log on so PCMonitor runs in their interactive session (Session 1+)." -ForegroundColor DarkGray
+    }
     $procFound = $true
 } elseif (-not $procFound) {
     Write-Host "  [FAIL] PCMonitorClient.exe is NOT running" -ForegroundColor Red

@@ -1,4 +1,4 @@
-﻿# PC Monitoring System - Auto Deployment Script
+# PC Monitoring System - Auto Deployment Script
 # This script deploys the client monitoring software to all lab PCs
 
 param(
@@ -249,7 +249,9 @@ if (-not $proc) {
             
             $wdAction = New-ScheduledTaskAction -Execute "powershell.exe" `
                                                -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$watchdogPath`""
-            $wdTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 2)
+            $wdTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) `
+                                                 -RepetitionInterval (New-TimeSpan -Minutes 2) `
+                                                 -RepetitionDuration ([TimeSpan]::MaxValue)
             $wdPrincipal = New-ScheduledTaskPrincipal -UserId "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount -RunLevel Highest
             $wdSettings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries `
                                                        -DontStopIfGoingOnBatteries `
@@ -262,11 +264,11 @@ if (-not $proc) {
                                   -Settings $wdSettings `
                                   -Force | Out-Null
             
-            # 4. Start immediately
-            Start-ScheduledTask -TaskName "PCMonitorClient" -ErrorAction SilentlyContinue
-            Start-Process -FilePath "$targetFolder\PCMonitorClient.exe" `
-                         -ArgumentList "$serverIP $serverPort" `
-                         -WindowStyle Hidden -ErrorAction SilentlyContinue
+            # 4. Start immediately if user is already logged on (interactive session)
+            $explorer = Get-Process -Name 'explorer' -ErrorAction SilentlyContinue
+            if ($explorer) {
+                Start-ScheduledTask -TaskName "PCMonitorClient" -ErrorAction SilentlyContinue
+            }
             
         }
         $taskParams["ArgumentList"] = @($targetFolder, $ServerIP, $ServerPort)

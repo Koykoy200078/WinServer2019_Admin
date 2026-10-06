@@ -322,6 +322,15 @@ namespace WinServer2019
             }
         }
 
+        private static bool HostnamesMatch(string a, string b)
+        {
+            if (string.Equals(a, b, StringComparison.OrdinalIgnoreCase)) return true;
+            if (string.IsNullOrWhiteSpace(a) || string.IsNullOrWhiteSpace(b)) return false;
+            string shortA = a.Split('.')[0];
+            string shortB = b.Split('.')[0];
+            return string.Equals(shortA, shortB, StringComparison.OrdinalIgnoreCase);
+        }
+
         private void UpdateClientList(ClientActivity activity)
         {
             if (this.IsDisposed || !this.IsHandleCreated) return;
@@ -340,7 +349,25 @@ namespace WinServer2019
                 AppendLog($"Update from {activity.PCName}: {activity.ActiveWindow}", Color.White);
             }
 
-            if (_itemLookup.TryGetValue(activity.PCName, out var existingItem))
+            ListViewItem existingItem = null;
+            if (_itemLookup.TryGetValue(activity.PCName, out existingItem))
+            {
+                // Exact key match
+            }
+            else
+            {
+                string shortName = activity.PCName.Split('.')[0];
+                foreach (var kvp in _itemLookup)
+                {
+                    if (string.Equals(kvp.Key.Split('.')[0], shortName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        existingItem = kvp.Value;
+                        break;
+                    }
+                }
+            }
+
+            if (existingItem != null)
             {
                 UpdateListViewItem(existingItem, activity);
             }
@@ -443,6 +470,7 @@ namespace WinServer2019
 
         private void RemoveClientFromList(string clientId)
         {
+            if (string.IsNullOrWhiteSpace(clientId)) return;
             if (this.IsDisposed || !this.IsHandleCreated) return;
             if (InvokeRequired)
             {
@@ -454,9 +482,30 @@ namespace WinServer2019
                 return;
             }
 
-            if (_itemLookup.TryGetValue(clientId, out var item))
+            ListViewItem item = null;
+            string matchedKey = null;
+
+            if (_itemLookup.TryGetValue(clientId, out item))
             {
-                _itemLookup.Remove(clientId);
+                matchedKey = clientId;
+            }
+            else
+            {
+                string shortId = clientId.Split('.')[0];
+                foreach (var kvp in _itemLookup)
+                {
+                    if (string.Equals(kvp.Key.Split('.')[0], shortId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        item = kvp.Value;
+                        matchedKey = kvp.Key;
+                        break;
+                    }
+                }
+            }
+
+            if (item != null && matchedKey != null)
+            {
+                _itemLookup.Remove(matchedKey);
                 lvClients.Items.Remove(item);
                 UpdateOnlineCount();
             }
@@ -474,7 +523,20 @@ namespace WinServer2019
 
         private void OpenScreenViewer(ClientActivity activity)
         {
-            if (_openScreenViewers.TryGetValue(activity.PCName, out var existingViewer) && !existingViewer.IsDisposed)
+            ScreenViewerForm existingViewer = null;
+            string existingKey = null;
+
+            foreach (var kvp in _openScreenViewers)
+            {
+                if (HostnamesMatch(kvp.Key, activity.PCName))
+                {
+                    existingViewer = kvp.Value;
+                    existingKey = kvp.Key;
+                    break;
+                }
+            }
+
+            if (existingViewer != null && !existingViewer.IsDisposed)
             {
                 if (existingViewer.WindowState == FormWindowState.Minimized)
                 {
@@ -487,7 +549,11 @@ namespace WinServer2019
 
             var screenViewer = new ScreenViewerForm(activity.PCName, monitoringServer);
             _openScreenViewers[activity.PCName] = screenViewer;
-            screenViewer.FormClosed += (s, e) => _openScreenViewers.Remove(activity.PCName);
+            screenViewer.FormClosed += (s, e) =>
+            {
+                _openScreenViewers.Remove(activity.PCName);
+                if (existingKey != null) _openScreenViewers.Remove(existingKey);
+            };
             screenViewer.Show();
         }
 
