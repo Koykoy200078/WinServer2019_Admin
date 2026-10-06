@@ -61,6 +61,20 @@ namespace WinServer2019
             btnToggleFullScreen.Click += (s, e) => ToggleFullScreen();
             pictureBox.DoubleClick += (s, e) => ToggleFullScreen();
 
+            // Draw helpful status message on black surface when awaiting image
+            pictureBox.Paint += (s, pe) =>
+            {
+                if (pictureBox.Image == null)
+                {
+                    using (var brush = new SolidBrush(Color.FromArgb(200, Color.LightGray)))
+                    using (var font = new Font("Segoe UI", 12, FontStyle.Regular))
+                    using (var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+                    {
+                        pe.Graphics.DrawString($"Viewing {pcName}\nAwaiting screen capture frame...", font, brush, pictureBox.ClientRectangle, sf);
+                    }
+                }
+            };
+
             // Setup close button event
             btnClose.Click += (s, e) => this.Close();
 
@@ -134,12 +148,21 @@ namespace WinServer2019
             lblStatus.ForeColor = Color.Yellow;
         }
 
+        private static bool HostnamesMatch(string a, string b)
+        {
+            if (string.Equals(a, b, StringComparison.OrdinalIgnoreCase)) return true;
+            if (string.IsNullOrWhiteSpace(a) || string.IsNullOrWhiteSpace(b)) return false;
+            string shortA = a.Split('.')[0];
+            string shortB = b.Split('.')[0];
+            return string.Equals(shortA, shortB, StringComparison.OrdinalIgnoreCase);
+        }
+
         private void Server_OnClientUpdate(ClientActivity activity)
         {
-            if (this.IsDisposed || !this.IsHandleCreated) return;
+            if (this.IsDisposed || !this.IsHandleCreated || activity == null) return;
 
-            // Use case-insensitive comparison for PC hostname
-            if (string.Equals(activity.PCName, pcName, StringComparison.OrdinalIgnoreCase))
+            // Match by hostname (short or FQDN) or IP address
+            if (HostnamesMatch(activity.PCName, pcName) || string.Equals(activity.IPAddress, pcName, StringComparison.OrdinalIgnoreCase))
             {
                 if (activity.ScreenshotData != null && activity.ScreenshotData.Length > 0)
                 {
@@ -237,10 +260,23 @@ namespace WinServer2019
 
             // Check if client is still connected
             var clients = server?.GetConnectedClientsDictionary();
-            if (clients != null && !clients.ContainsKey(pcName))
+            bool isConnected = false;
+            if (clients != null)
             {
-                lblStatus.Text = "Client disconnected";
-                lblStatus.ForeColor = Color.Red;
+                foreach (var kvp in clients)
+                {
+                    if (HostnamesMatch(kvp.Key, pcName) || string.Equals(kvp.Value.IPAddress, pcName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        isConnected = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!isConnected)
+            {
+                lblStatus.Text = "Client disconnected or awaiting first frame...";
+                lblStatus.ForeColor = Color.OrangeRed;
             }
         }
 

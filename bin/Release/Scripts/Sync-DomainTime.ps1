@@ -27,8 +27,11 @@ function Test-DomainMembership {
     
     try {
         $result = Invoke-Command -ComputerName $ComputerName -Credential $Cred -ScriptBlock {
-            $domain = (Get-WmiObject -Class Win32_ComputerSystem).Domain
-            return $domain
+            if (Get-Command Get-CimInstance -ErrorAction SilentlyContinue) {
+                (Get-CimInstance -ClassName Win32_ComputerSystem).Domain
+            } else {
+                (Get-WmiObject -Class Win32_ComputerSystem).Domain
+            }
         } -ErrorAction Stop
         
         return $result -eq "csitlab.local"

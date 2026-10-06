@@ -2,7 +2,8 @@
 param(
     [string]$PCName = "PC-1.csitlab.local",
     [string]$ServerIP = "192.168.2.45",
-    [int]$ServerPort = 8888
+    [int]$ServerPort = 8888,
+    [PSCredential]$Credential = $null
 )
 
 Write-Host "`n=======================================" -ForegroundColor Cyan
@@ -13,7 +14,10 @@ Write-Host ""
 
 try {
     # Run comprehensive diagnostics on remote PC
-    $results = Invoke-Command -ComputerName $PCName -ArgumentList $ServerIP, $ServerPort -ScriptBlock {
+    $invokeArgs = @{
+        ComputerName = $PCName
+        ArgumentList = @($ServerIP, $ServerPort)
+        ScriptBlock  = {
         param($ServerIP, $ServerPort)
         
         $diagnostics = @{
@@ -102,6 +106,11 @@ try {
         
         return $diagnostics
     }
+}
+if ($Credential) {
+    $invokeArgs["Credential"] = $Credential
+}
+$results = Invoke-Command @invokeArgs
     
     # Display results
     Write-Host "`n=======================================" -ForegroundColor Cyan

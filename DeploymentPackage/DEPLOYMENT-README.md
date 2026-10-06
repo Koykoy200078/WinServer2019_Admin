@@ -1,4 +1,4 @@
-# PC Monitoring System - Deployment Package
+﻿# PC Monitoring System - Deployment Package
 
 ## 🎯 Quick Start
 
@@ -36,7 +36,7 @@ $targetPCs = @(
 ## 🚀 Usage
 
 1. **Start the Server:**
-   - Run Server\WinServer2019.exe
+   - Run `Server\WinServer2019.exe`
    - Click **📊 Live Monitoring** button
    - Click **Start Monitoring Server**
 
@@ -102,7 +102,7 @@ Automatically configured by deployment script:
 **Clients not connecting?**
 1. Check firewall rules on both server and clients
 2. Verify server IP is correct in client config
-3. Test connectivity: Test-NetConnection -ComputerName <ServerIP> -Port 8888
+3. Test connectivity: `Test-NetConnection -ComputerName <ServerIP> -Port 8888`
 
 **Screen not showing?**
 1. Ensure client has latest version
@@ -117,8 +117,8 @@ Automatically configured by deployment script:
 4. Ensure TCP_NODELAY is working (check firewall)
 
 **Client not starting?**
-1. Check scheduled task: Get-ScheduledTask -TaskName "PCMonitorClient"
-2. Run manually to see errors: C:\ProgramData\PCMonitor\PCMonitorClient.exe
+1. Check scheduled task: `Get-ScheduledTask -TaskName "PCMonitorClient"`
+2. Run manually to see errors: `C:\ProgramData\PCMonitor\PCMonitorClient.exe`
 3. Check event viewer for application errors
 
 ## 📝 Uninstall
@@ -147,4 +147,4 @@ This system captures and transmits:
 Ensure compliance with your organization's policies and inform users as required.
 
 ---
-Built with ❤️ for Windows Server 2019 Lab Management
+Built with lab management for Windows Server 2019

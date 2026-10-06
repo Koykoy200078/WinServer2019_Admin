@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Build and package the monitoring system for deployment
 .DESCRIPTION
@@ -111,9 +111,11 @@ Write-ColorOutput "  ✓ Client binaries copied to DeploymentPackage\Client" "Gr
 
 # Copy deployment scripts
 Copy-Item -Path (Join-Path $ProjectRoot "Scripts\*") -Destination $scriptsDir -Recurse -Force
-Copy-Item -Path (Join-Path $ProjectRoot "Deploy-MonitoringClient.ps1") -Destination $packageDir -Force -ErrorAction SilentlyContinue
-Copy-Item -Path (Join-Path $ProjectRoot "Check-Deployment.ps1") -Destination $packageDir -Force -ErrorAction SilentlyContinue
-Copy-Item -Path (Join-Path $ProjectRoot "Check-Deployment.ps1") -Destination $serverDir -Force -ErrorAction SilentlyContinue
+@( $packageDir, $scriptsDir, $serverDir, (Join-Path $serverDir "Scripts"), (Join-Path $ProjectRoot "Scripts") ) | ForEach-Object {
+    if (-not (Test-Path $_)) { New-Item -ItemType Directory -Path $_ -Force | Out-Null }
+    Copy-Item -Path (Join-Path $ProjectRoot "Deploy-MonitoringClient.ps1") -Destination "$_\" -Force -ErrorAction SilentlyContinue
+    Copy-Item -Path (Join-Path $ProjectRoot "Check-Deployment.ps1") -Destination "$_\" -Force -ErrorAction SilentlyContinue
+}
 Write-ColorOutput "  ✓ Scripts, blocklists, and deployment tools packaged" "Green"
 
 # --- 5. DEPLOY TO NETWORK SHARE ---
@@ -151,8 +153,10 @@ if (-not $SkipDeploy -and (Test-Path "\\192.168.2.45\Sharing\Other")) {
         Copy-Item -Path (Join-Path $ProjectRoot "Scripts\*") -Destination "$networkShare\Server\Scripts\" -Recurse -Force
         Copy-Item -Path (Join-Path $ProjectRoot "Scripts\*") -Destination "$networkShare\Scripts\" -Recurse -Force
         Copy-Item -Path (Join-Path $ProjectRoot "Scripts\*") -Destination "\\192.168.2.45\Sharing\Other\Scripts\" -Recurse -Force
-        Copy-Item -Path (Join-Path $ProjectRoot "Check-Deployment.ps1") -Destination "$networkShare\Server\Check-Deployment.ps1" -Force -ErrorAction SilentlyContinue
-        Copy-Item -Path (Join-Path $ProjectRoot "Check-Deployment.ps1") -Destination "$networkShare\Check-Deployment.ps1" -Force -ErrorAction SilentlyContinue
+        @("$networkShare", "$networkShare\Scripts", "$networkShare\Server", "$networkShare\Server\Scripts", "\\192.168.2.45\Sharing\Other\Scripts") | ForEach-Object {
+            Copy-Item -Path (Join-Path $ProjectRoot "Deploy-MonitoringClient.ps1") -Destination "$_\" -Force -ErrorAction SilentlyContinue
+            Copy-Item -Path (Join-Path $ProjectRoot "Check-Deployment.ps1") -Destination "$_\" -Force -ErrorAction SilentlyContinue
+        }
         Write-ColorOutput "  ✓ Scripts, blocklists, and verification tools deployed to network" "Green"
     }
     catch {
@@ -163,35 +167,35 @@ if (-not $SkipDeploy -and (Test-Path "\\192.168.2.45\Sharing\Other")) {
 
 # Create README
 $readmePath = Join-Path $packageDir "DEPLOYMENT-README.md"
-$readmeContent = @"
+$readmeContent = @'
 # PC Monitoring System - Deployment Package
 
 ## 🎯 Quick Start
 
 ### For Domain Networks:
-``````powershell
+```powershell
 # Navigate to Scripts folder
 cd Scripts
 
 # Deploy to PCs 1-35 in domain
 .\Deploy-MonitoringClient.ps1 -ServerIP "192.168.2.45" -StartPC 1 -EndPC 35
-``````
+```
 
 ### For Standalone (Non-Domain) Networks:
-``````powershell
+```powershell
 # Navigate to Scripts folder
 cd Scripts
 
 # Create list of target PCs
-`$targetPCs = @(
+$targetPCs = @(
     "192.168.2.101",
     "192.168.2.102",
     "192.168.2.103"
 )
 
 # Deploy to standalone PCs
-.\Deploy-Standalone.ps1 -ServerIP "192.168.2.45" -TargetPCs `$targetPCs -Username "Administrator"
-``````
+.\Deploy-Standalone.ps1 -ServerIP "192.168.2.45" -TargetPCs $targetPCs -Username "Administrator"
+```
 
 ## 📁 Package Contents
 
@@ -290,18 +294,18 @@ Automatically configured by deployment script:
 ## 📝 Uninstall
 
 To remove from a client:
-``````powershell
+```powershell
 Invoke-Command -ComputerName PC-1 -ScriptBlock {
     # Stop process
     Get-Process -Name "PCMonitorClient" -ErrorAction SilentlyContinue | Stop-Process -Force
     
     # Remove scheduled task
-    Unregister-ScheduledTask -TaskName "PCMonitorClient" -Confirm:`$false
+    Unregister-ScheduledTask -TaskName "PCMonitorClient" -Confirm:$false
     
     # Remove files
     Remove-Item "C:\ProgramData\PCMonitor" -Recurse -Force
 }
-``````
+```
 
 ## 🔒 Privacy Notice
 
@@ -313,8 +317,8 @@ This system captures and transmits:
 Ensure compliance with your organization's policies and inform users as required.
 
 ---
-Built with ❤️ for Windows Server 2019 Lab Management
-"@
+Built with lab management for Windows Server 2019
+'@
 
 Set-Content -Path $readmePath -Value $readmeContent -Encoding UTF8
 Write-ColorOutput "  ✓ README created" "Green"

@@ -55,15 +55,46 @@ $Credential = New-Object System.Management.Automation.PSCredential ($Username, $
 
 # Paths
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$ProjectRoot = Split-Path -Parent $ScriptDir
-$ClientPath = Join-Path $ProjectRoot "PCMonitorClient\bin\Release"
+
+# Candidate client paths
+$candidatePaths = @(
+    (Join-Path $ScriptDir "Client"),
+    (Join-Path $ScriptDir "..\Client"),
+    (Join-Path $ScriptDir "..\..\Client"),
+    (Join-Path $ScriptDir "PCMonitorClient\bin\Release"),
+    (Join-Path $ScriptDir "..\PCMonitorClient\bin\Release"),
+    (Join-Path $ScriptDir "..\..\PCMonitorClient\bin\Release"),
+    "F:\Sharing\Other\DeploymentPackage\Client",
+    "F:\Sharing\PCMonitor",
+    "\\$ServerIP\Sharing\PCMonitor",
+    "\\$ServerIP\Sharing\Other\DeploymentPackage\Client",
+    "C:\ProgramData\PCMonitor"
+)
+
+$ClientPath = $null
+foreach ($cand in $candidatePaths) {
+    if (Test-Path (Join-Path $cand "PCMonitorClient.exe")) {
+        $ClientPath = (Resolve-Path $cand -ErrorAction SilentlyContinue).Path
+        break
+    }
+}
+if (-not $ClientPath) {
+    foreach ($cand in $candidatePaths) {
+        if (Test-Path $cand) {
+            $ClientPath = (Resolve-Path $cand -ErrorAction SilentlyContinue).Path
+            break
+        }
+    }
+}
+
 $LocalDeployPath = "C:\Temp\PCMonitorClient"
 
 # Check if client files exist
-if (-not (Test-Path (Join-Path $ClientPath "PCMonitorClient.exe"))) {
+if (-not $ClientPath -or -not (Test-Path (Join-Path $ClientPath "PCMonitorClient.exe"))) {
     Write-ColorOutput "❌ ERROR: Client files not found!" "Red"
     Write-ColorOutput "   Please build the PCMonitorClient project first." "Yellow"
-    Write-ColorOutput "   Expected path: $ClientPath" "Yellow"
+    Write-ColorOutput "   Checked candidates:" "Yellow"
+    $candidatePaths | ForEach-Object { Write-ColorOutput "   - $_" "Gray" }
     exit 1
 }
 

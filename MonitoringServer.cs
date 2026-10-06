@@ -51,8 +51,8 @@ namespace WinServer2019
 
         public MonitoringServer()
         {
-            clientActivities = new ConcurrentDictionary<string, ClientActivity>();
-            commandQueues = new ConcurrentDictionary<string, ConcurrentQueue<ServerCommand>>();
+            clientActivities = new ConcurrentDictionary<string, ClientActivity>(StringComparer.OrdinalIgnoreCase);
+            commandQueues = new ConcurrentDictionary<string, ConcurrentQueue<ServerCommand>>(StringComparer.OrdinalIgnoreCase);
         }
 
         private void SafeLog(string msg)
@@ -224,9 +224,23 @@ namespace WinServer2019
 
                     // Check for pending commands and send them, otherwise send ACK
                     ServerCommand pendingCommand = null;
-                    if (clientId != null && commandQueues.TryGetValue(clientId, out var queue))
+                    if (clientId != null)
                     {
-                        queue.TryDequeue(out pendingCommand);
+                        if (commandQueues.TryGetValue(clientId, out var queue) && queue.TryDequeue(out pendingCommand))
+                        {
+                            // Dequeued
+                        }
+                        else
+                        {
+                            string shortId = clientId.Split('.')[0];
+                            foreach (var kvp in commandQueues)
+                            {
+                                if (string.Equals(kvp.Key.Split('.')[0], shortId, StringComparison.OrdinalIgnoreCase) && kvp.Value.TryDequeue(out pendingCommand))
+                                {
+                                    break;
+                                }
+                            }
+                        }
                     }
 
                     string response;
@@ -328,15 +342,39 @@ namespace WinServer2019
 
         public void SendCommand(string pcName, ServerCommand command)
         {
-            var queue = commandQueues.GetOrAdd(pcName, _ => new ConcurrentQueue<ServerCommand>());
+            if (string.IsNullOrWhiteSpace(pcName)) return;
+
+            string targetKey = pcName;
+            string shortName = pcName.Split('.')[0];
+            foreach (var key in clientActivities.Keys)
+            {
+                if (string.Equals(key.Split('.')[0], shortName, StringComparison.OrdinalIgnoreCase))
+                {
+                    targetKey = key;
+                    break;
+                }
+            }
+
+            var queue = commandQueues.GetOrAdd(targetKey, _ => new ConcurrentQueue<ServerCommand>());
             queue.Enqueue(command);
-            SafeLog($"Command queued for {pcName}: {command.CommandType}");
+            SafeLog($"Command queued for {targetKey}: {command.CommandType}");
         }
 
         public ClientActivity GetClientActivity(string pcName)
         {
-            clientActivities.TryGetValue(pcName, out var activity);
-            return activity;
+            if (string.IsNullOrWhiteSpace(pcName)) return null;
+            if (clientActivities.TryGetValue(pcName, out var activity)) return activity;
+
+            string shortName = pcName.Split('.')[0];
+            foreach (var kvp in clientActivities)
+            {
+                if (string.Equals(kvp.Key.Split('.')[0], shortName, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(kvp.Value.IPAddress, pcName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return kvp.Value;
+                }
+            }
+            return null;
         }
 
         public void Dispose()

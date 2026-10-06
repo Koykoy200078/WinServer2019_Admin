@@ -6,7 +6,9 @@ param(
     [int]$ServerPort = 8888,
     [int]$StartPC = 1,
     [int]$EndPC = 35,
-    [string]$Domain = "csitlab.local"
+    [string]$Domain = "csitlab.local",
+    [string]$PCName = "",
+    [PSCredential]$Credential = $null
 )
 
 Write-Host "=====================================" -ForegroundColor Cyan
@@ -16,25 +18,49 @@ Write-Host ""
 
 # Detect if running from deployment package or source
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-if ($scriptDir -like "*DeploymentPackage*") {
-    # Running from deployment package
-    $clientPath = Join-Path (Split-Path -Parent $scriptDir) "Client"
-} elseif (Test-Path (Join-Path $scriptDir "PCMonitorClient\bin\Release")) {
-    # Running directly from repo root
-    $clientPath = Join-Path $scriptDir "PCMonitorClient\bin\Release"
-} else {
-    # Running from Scripts subfolder
-    $projectRoot = Split-Path -Parent $scriptDir
-    $clientPath = Join-Path $projectRoot "PCMonitorClient\bin\Release"
+
+# Multi-path search for client binaries
+$candidatePaths = @(
+    (Join-Path $scriptDir "Client"),
+    (Join-Path $scriptDir "..\Client"),
+    (Join-Path $scriptDir "..\..\Client"),
+    (Join-Path $scriptDir "PCMonitorClient\bin\Release"),
+    (Join-Path $scriptDir "..\PCMonitorClient\bin\Release"),
+    (Join-Path $scriptDir "..\..\PCMonitorClient\bin\Release"),
+    "F:\Sharing\Other\DeploymentPackage\Client",
+    "F:\Sharing\PCMonitor",
+    "\\$ServerIP\Sharing\PCMonitor",
+    "\\$ServerIP\Sharing\Other\DeploymentPackage\Client",
+    "C:\ProgramData\PCMonitor"
+)
+
+$clientPath = $null
+foreach ($cand in $candidatePaths) {
+    if (Test-Path (Join-Path $cand "PCMonitorClient.exe")) {
+        $clientPath = (Resolve-Path $cand -ErrorAction SilentlyContinue).Path
+        break
+    }
+}
+if (-not $clientPath) {
+    foreach ($cand in $candidatePaths) {
+        if (Test-Path $cand) {
+            $clientPath = (Resolve-Path $cand -ErrorAction SilentlyContinue).Path
+            break
+        }
+    }
 }
 
 $networkShare = "\\$ServerIP\Sharing\PCMonitor"
+if (-not (Test-Path $networkShare -ErrorAction SilentlyContinue) -and (Test-Path "F:\Sharing\PCMonitor")) {
+    $networkShare = "F:\Sharing\PCMonitor"
+}
 $targetFolder = "C:\ProgramData\PCMonitor"
 
 # Verify client files exist
-if (-not (Test-Path $clientPath)) {
-    Write-Host "ERROR: Client files not found at: $clientPath" -ForegroundColor Red
-    Write-Host "Please ensure the deployment package is complete." -ForegroundColor Yellow
+if (-not $clientPath -or -not (Test-Path $clientPath)) {
+    Write-Host "ERROR: Client files not found! Checked candidate locations:" -ForegroundColor Red
+    $candidatePaths | ForEach-Object { Write-Host "  - $_" -ForegroundColor DarkGray }
+    Write-Host "Please build the project first or verify deployment files." -ForegroundColor Yellow
     exit 1
 }
 
@@ -44,15 +70,21 @@ Write-Host ""
 # Step 1: Copy client to network share
 Write-Host "[1/5] Copying client to network share..." -ForegroundColor Yellow
 try {
-    if (-not (Test-Path $networkShare)) {
+    if (-not (Test-Path $networkShare -ErrorAction SilentlyContinue)) {
         New-Item -Path $networkShare -ItemType Directory -Force | Out-Null
     }
-    Copy-Item -Path "$clientPath\*" -Destination $networkShare -Recurse -Force
-    Write-Host "  ✓ Client copied to $networkShare" -ForegroundColor Green
+    $resolvedClient = (Resolve-Path $clientPath -ErrorAction SilentlyContinue).Path
+    $resolvedShare = (Resolve-Path $networkShare -ErrorAction SilentlyContinue).Path
+    if ($resolvedClient -and $resolvedShare -and ($resolvedClient -eq $resolvedShare)) {
+        Write-Host "  ✓ Client files already up to date on $networkShare" -ForegroundColor Green
+    } else {
+        Copy-Item -Path "$clientPath\*" -Destination $networkShare -Recurse -Force
+        Write-Host "  ✓ Client copied to $networkShare" -ForegroundColor Green
+    }
 }
 catch {
-    Write-Host "  ✗ Failed to copy to network share: $_" -ForegroundColor Red
-    exit 1
+    Write-Host "  ⚠ Warning: Could not update network share: $_" -ForegroundColor Yellow
+    Write-Host "    Will deploy directly from $clientPath" -ForegroundColor Gray
 }
 
 # Step 2: Configure firewall on server
@@ -75,9 +107,21 @@ catch {
     Write-Host "  ⚠ Warning: Could not configure firewall: $_" -ForegroundColor Yellow
 }
 
-# Step 3: Deploy to all PCs
-Write-Host "[3/5] Deploying to PCs $StartPC to $EndPC..." -ForegroundColor Yellow
-$targets = $StartPC..$EndPC | ForEach-Object { "PC-$_.$Domain" }
+# Step 3: Deploy to target PCs
+if ($PCName) {
+    if ($PCName -match '^\d+$') {
+        $targets = @("PC-$PCName.$Domain")
+    } elseif ($PCName -notmatch '\.' -and $PCName -match '^(?i)PC-\d+') {
+        $targets = @("$PCName.$Domain")
+    } else {
+        $targets = @($PCName)
+    }
+    Write-Host "[3/5] Deploying to target: $($targets -join ', ')..." -ForegroundColor Yellow
+} else {
+    $targets = $StartPC..$EndPC | ForEach-Object { "PC-$_.$Domain" }
+    Write-Host "[3/5] Deploying to PCs $StartPC to $EndPC..." -ForegroundColor Yellow
+}
+
 $successCount = 0
 $failCount = 0
 
@@ -90,17 +134,28 @@ foreach ($pc in $targets) {
         $testPath = "\\$pc\C$"
         
         if (-not (Test-Path $testPath -ErrorAction SilentlyContinue)) {
-            Write-Host " OFFLINE" -ForegroundColor DarkGray
+            Write-Host " OFFLINE (Cannot reach $testPath)" -ForegroundColor DarkGray
             $failCount++
             continue
         }
 
+        # Build Invoke-Command parameters
+        $invokeBaseParams = @{
+            ComputerName = $pc
+        }
+        if ($Credential) {
+            $invokeBaseParams["Credential"] = $Credential
+        }
+
         # Stop running client process via remote session
         try {
-            Invoke-Command -ComputerName $pc -ScriptBlock {
+            $stopParams = $invokeBaseParams.Clone()
+            $stopParams["ScriptBlock"] = {
                 Get-Process -Name "PCMonitorClient" -ErrorAction SilentlyContinue | Stop-Process -Force
                 Start-Sleep -Milliseconds 500
-            } -ErrorAction SilentlyContinue
+            }
+            $stopParams["ErrorAction"] = "SilentlyContinue"
+            Invoke-Command @stopParams
         } catch {
             # Ignore if process not running
         }
@@ -110,7 +165,7 @@ foreach ($pc in $targets) {
             try {
                 New-Item -Path $remotePath -ItemType Directory -Force -ErrorAction Stop | Out-Null
             } catch {
-                Write-Host " FAILED: Cannot create directory" -ForegroundColor Red
+                Write-Host " FAILED: Cannot create directory $remotePath" -ForegroundColor Red
                 $failCount++
                 continue
             }
@@ -120,17 +175,18 @@ foreach ($pc in $targets) {
         $retryCount = 0
         $maxRetries = 3
         $copySuccess = $false
+        $sourceToUse = if (Test-Path "$networkShare\PCMonitorClient.exe" -ErrorAction SilentlyContinue) { "$networkShare\*" } else { "$clientPath\*" }
         
         while (-not $copySuccess -and $retryCount -lt $maxRetries) {
             try {
-                Copy-Item -Path "$networkShare\*" -Destination $remotePath -Recurse -Force -ErrorAction Stop
+                Copy-Item -Path $sourceToUse -Destination $remotePath -Recurse -Force -ErrorAction Stop
                 $copySuccess = $true
             } catch {
                 $retryCount++
                 if ($retryCount -lt $maxRetries) {
                     Start-Sleep -Milliseconds 500
                 } else {
-                    Write-Host " FAILED: Cannot copy files after $maxRetries attempts" -ForegroundColor Red
+                    Write-Host " FAILED: Cannot copy files after $maxRetries attempts: $_" -ForegroundColor Red
                     $failCount++
                     continue
                 }
@@ -138,7 +194,8 @@ foreach ($pc in $targets) {
         }
 
         # Create scheduled task for auto-start
-        Invoke-Command -ComputerName $pc -ScriptBlock {
+        $taskParams = $invokeBaseParams.Clone()
+        $taskParams["ScriptBlock"] = {
             param($targetFolder, $serverIP, $serverPort)
             
             # Remove old task if exists
@@ -166,7 +223,10 @@ foreach ($pc in $targets) {
                          -ArgumentList "$serverIP $serverPort" `
                          -WindowStyle Hidden
             
-        } -ArgumentList $targetFolder, $ServerIP, $ServerPort -ErrorAction Stop
+        }
+        $taskParams["ArgumentList"] = @($targetFolder, $ServerIP, $ServerPort)
+        $taskParams["ErrorAction"] = "Stop"
+        Invoke-Command @taskParams
 
         Write-Host " SUCCESS" -ForegroundColor Green
         $successCount++
