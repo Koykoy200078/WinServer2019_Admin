@@ -1,0 +1,185 @@
+# ==============================================================================
+# Comprehensive Social Media & Messaging Block List
+# Computer Laboratory Management System
+# Formatted for Windows HOSTS and DNS Sinkholing (Pure FQDNs only, no URL paths)
+# ==============================================================================
+
+# --- Meta / Facebook Platforms ---
+facebook.com
+www.facebook.com
+fb.com
+www.fb.com
+m.facebook.com
+l.facebook.com
+lm.facebook.com
+fbcdn.net
+www.fbcdn.net
+static.xx.fbcdn.net
+facebook.net
+connect.facebook.net
+fbsbx.com
+messenger.com
+www.messenger.com
+m.me
+
+# --- Instagram ---
+instagram.com
+www.instagram.com
+ig.me
+instagr.am
+cdninstagram.com
+static.cdninstagram.com
+
+# --- Threads ---
+threads.net
+www.threads.net
+
+# --- Twitter / X ---
+twitter.com
+www.twitter.com
+x.com
+www.x.com
+t.co
+twimg.com
+pbs.twimg.com
+video.twimg.com
+twittercdn.com
+mobile.twitter.com
+api.twitter.com
+api.x.com
+
+# --- TikTok & ByteDance ---
+tiktok.com
+www.tiktok.com
+m.tiktok.com
+tiktokcdn.com
+p16-va.tiktokcdn.com
+p16-sign-va.tiktokcdn.com
+byteoversea.com
+tiktokv.com
+musical.ly
+muscdn.com
+lemon8-app.com
+www.lemon8-app.com
+
+# --- Snapchat ---
+snapchat.com
+www.snapchat.com
+snapkit.com
+snap.com
+www.snap.com
+sc-cdn.net
+app.snapchat.com
+
+# --- Reddit ---
+reddit.com
+www.reddit.com
+old.reddit.com
+redd.it
+redditmedia.com
+preview.redd.it
+i.redd.it
+v.redd.it
+redditstatic.com
+gql.reddit.com
+
+# --- Discord ---
+discord.com
+www.discord.com
+discordapp.com
+www.discordapp.com
+discord.gg
+discordapp.net
+discord.media
+cdn.discordapp.com
+gateway.discord.gg
+
+# --- Messaging Platforms ---
+whatsapp.com
+www.whatsapp.com
+web.whatsapp.com
+api.whatsapp.com
+wa.me
+telegram.org
+www.telegram.org
+web.telegram.org
+t.me
+telegram.me
+api.telegram.org
+wechat.com
+www.wechat.com
+web.wechat.com
+weixin.qq.com
+line.me
+www.line.me
+line-apps.com
+viber.com
+www.viber.com
+signal.org
+www.signal.org
+kik.com
+www.kik.com
+
+# --- Video & Live Streaming Social ---
+twitch.tv
+www.twitch.tv
+ttvnw.net
+jtvnw.net
+kick.com
+www.kick.com
+
+# --- Microblogging & Decentralized Social ---
+bsky.app
+bsky.social
+main.bsky.network
+mastodon.social
+mstdn.social
+joinmastodon.org
+tumblr.com
+www.tumblr.com
+tumblr.co
+64.media.tumblr.com
+
+# --- Image & Scrapbook Social ---
+pinterest.com
+www.pinterest.com
+pinimg.com
+s.pinimg.com
+pinterest.ca
+pinterest.co.uk
+
+# --- Professional Social Networking ---
+linkedin.com
+www.linkedin.com
+licdn.com
+media.licdn.com
+
+# --- Spontaneous & Anonymous Social ---
+bereal.com
+www.bereal.com
+ome.tv
+www.ome.tv
+chathub.cam
+omegle.com
+www.omegle.com
+monkey.app
+coomeet.com
+chatroulette.com
+
+# --- Other Social Platforms ---
+ask.fm
+quora.com
+www.quora.com
+clubhouse.com
+www.clubhouse.com
+myspace.com
+vk.com
+weibo.com
+weibo.cn
+tieba.baidu.com
+mixi.jp
+taringa.net
+badoo.com
+tinder.com
+bumble.com
+hinge.co

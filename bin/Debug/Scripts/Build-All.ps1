@@ -6,7 +6,9 @@
 #>
 
 param(
-    [switch]$SkipTests
+    [switch]$SkipClean,
+    [switch]$SkipTests,
+    [switch]$SkipDeploy
 )
 
 $ErrorActionPreference = "Stop"
@@ -18,7 +20,7 @@ function Write-ColorOutput {
 }
 
 Write-ColorOutput "`n========================================" "Cyan"
-Write-ColorOutput "  Building Monitoring System" "Cyan"
+Write-ColorOutput "  Clean, Build & Deploy System" "Cyan"
 Write-ColorOutput "========================================`n" "Cyan"
 
 # Find MSBuild
@@ -31,22 +33,37 @@ if (-not (Test-Path $msbuildPath)) {
 }
 if (-not (Test-Path $msbuildPath)) {
     Write-ColorOutput "❌ MSBuild not found!" "Red"
-    Write-ColorOutput "   Please install Visual Studio 2022" "Yellow"
+    Write-ColorOutput "   Please install Visual Studio 2022 / 2026" "Yellow"
     exit 1
 }
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Split-Path -Parent $ScriptDir
 
-# Build Server
-Write-ColorOutput "🔨 Building Server Application..." "Yellow"
+# --- 1. CLEAN PHASE ---
+if (-not $SkipClean) {
+    Write-ColorOutput "🧹 Cleaning previous build outputs..." "Yellow"
+    Push-Location $ProjectRoot
+    try {
+        & $msbuildPath "WinServer2019.csproj" /p:Configuration=Release /t:Clean /v:minimal /nologo
+        & $msbuildPath "PCMonitorClient\PCMonitorClient.csproj" /p:Configuration=Release /t:Clean /v:minimal /nologo
+        Write-ColorOutput "✓ Clean completed successfully!" "Green"
+    } catch {
+        Write-ColorOutput "⚠ Clean notice: $_" "Yellow"
+    } finally {
+        Pop-Location
+    }
+}
+
+# --- 2. BUILD SERVER ---
+Write-ColorOutput "`n🔨 Building Server Application (WinServer2019)..." "Yellow"
 Push-Location $ProjectRoot
 try {
     & $msbuildPath "WinServer2019.csproj" /p:Configuration=Release /t:Rebuild /v:minimal /nologo
     if ($LASTEXITCODE -eq 0) {
         Write-ColorOutput "✓ Server build successful!" "Green"
     } else {
-        throw "Server build failed"
+        throw "Server build failed with exit code $LASTEXITCODE"
     }
 } catch {
     Write-ColorOutput "❌ Server build failed: $_" "Red"
@@ -55,15 +72,15 @@ try {
 }
 Pop-Location
 
-# Build Client
-Write-ColorOutput "`n🔨 Building Client Application..." "Yellow"
+# --- 3. BUILD CLIENT ---
+Write-ColorOutput "`n🔨 Building Client Application (PCMonitorClient)..." "Yellow"
 Push-Location (Join-Path $ProjectRoot "PCMonitorClient")
 try {
     & $msbuildPath "PCMonitorClient.csproj" /p:Configuration=Release /t:Rebuild /v:minimal /nologo
     if ($LASTEXITCODE -eq 0) {
         Write-ColorOutput "✓ Client build successful!" "Green"
     } else {
-        throw "Client build failed"
+        throw "Client build failed with exit code $LASTEXITCODE"
     }
 } catch {
     Write-ColorOutput "❌ Client build failed: $_" "Red"
@@ -72,47 +89,53 @@ try {
 }
 Pop-Location
 
-# Create deployment package
-Write-ColorOutput "`n📦 Creating deployment package..." "Yellow"
+# --- 4. CREATE / UPDATE DEPLOYMENT PACKAGE ---
+Write-ColorOutput "`n📦 Packaging deployment files..." "Yellow"
 $packageDir = Join-Path $ProjectRoot "DeploymentPackage"
+$serverDir = Join-Path $packageDir "Server"
+$clientDir = Join-Path $packageDir "Client"
+$scriptsDir = Join-Path $packageDir "Scripts"
 
-if (Test-Path $packageDir) {
-    Remove-Item $packageDir -Recurse -Force
+# Ensure directories exist
+@( $packageDir, $serverDir, $clientDir, $scriptsDir ) | ForEach-Object {
+    if (-not (Test-Path $_)) { New-Item -ItemType Directory -Path $_ -Force | Out-Null }
 }
-New-Item -ItemType Directory -Path $packageDir -Force | Out-Null
 
 # Copy server files
-$serverDir = Join-Path $packageDir "Server"
-New-Item -ItemType Directory -Path $serverDir -Force | Out-Null
 Copy-Item -Path (Join-Path $ProjectRoot "bin\Release\*") -Destination $serverDir -Recurse -Force
-Write-ColorOutput "  ✓ Server files copied" "Green"
+Write-ColorOutput "  ✓ Server binaries and scripts copied to DeploymentPackage\Server" "Green"
 
 # Copy client files
-$clientDir = Join-Path $packageDir "Client"
-New-Item -ItemType Directory -Path $clientDir -Force | Out-Null
 Copy-Item -Path (Join-Path $ProjectRoot "PCMonitorClient\bin\Release\*") -Destination $clientDir -Recurse -Force
-Write-ColorOutput "  ✓ Client files copied" "Green"
+Write-ColorOutput "  ✓ Client binaries copied to DeploymentPackage\Client" "Green"
 
 # Copy deployment scripts
-$scriptsDir = Join-Path $packageDir "Scripts"
-New-Item -ItemType Directory -Path $scriptsDir -Force | Out-Null
-Copy-Item -Path (Join-Path $ScriptDir "Deploy-Standalone.ps1") -Destination $scriptsDir -Force -ErrorAction SilentlyContinue
-Copy-Item -Path (Join-Path $ProjectRoot "Deploy-MonitoringClient.ps1") -Destination $scriptsDir -Force -ErrorAction SilentlyContinue
-Copy-Item -Path (Join-Path $ScriptDir "Check-Deployment.ps1") -Destination $scriptsDir -Force -ErrorAction SilentlyContinue
-Copy-Item -Path (Join-Path $ScriptDir "Test-Client.ps1") -Destination $scriptsDir -Force -ErrorAction SilentlyContinue
-Copy-Item -Path (Join-Path $ScriptDir "Diagnose-Remote.ps1") -Destination $scriptsDir -Force -ErrorAction SilentlyContinue
-Write-ColorOutput "  ✓ Deployment scripts copied" "Green"
+Copy-Item -Path (Join-Path $ProjectRoot "Scripts\*") -Destination $scriptsDir -Recurse -Force
+Copy-Item -Path (Join-Path $ProjectRoot "Deploy-MonitoringClient.ps1") -Destination $packageDir -Force -ErrorAction SilentlyContinue
+Copy-Item -Path (Join-Path $ProjectRoot "Check-Deployment.ps1") -Destination $packageDir -Force -ErrorAction SilentlyContinue
+Copy-Item -Path (Join-Path $ProjectRoot "Check-Deployment.ps1") -Destination $serverDir -Force -ErrorAction SilentlyContinue
+Write-ColorOutput "  ✓ Scripts, blocklists, and deployment tools packaged" "Green"
 
-# Deploy to network share if available
+# --- 5. DEPLOY TO NETWORK SHARE ---
 $networkShare = "\\192.168.2.45\Sharing\Other\DeploymentPackage"
-if (Test-Path "\\192.168.2.45\Sharing\Other") {
-    Write-ColorOutput "`n📤 Deploying to network share..." "Yellow"
+if (-not $SkipDeploy -and (Test-Path "\\192.168.2.45\Sharing\Other")) {
+    Write-ColorOutput "`n📤 Deploying to network share ($networkShare)..." "Yellow"
     
     try {
-        # Copy server
-        Copy-Item -Path (Join-Path $serverDir "WinServer2019.exe") -Destination "$networkShare\Server\" -Force
+        # Ensure remote server dirs exist
+        @("$networkShare\Server", "$networkShare\Client", "$networkShare\Scripts", "\\192.168.2.45\Sharing\Other\Scripts") | ForEach-Object {
+            if (-not (Test-Path $_)) { New-Item -ItemType Directory -Path $_ -Force | Out-Null }
+        }
+
+        # Copy server binary (handle file-in-use gracefully)
+        try {
+            Copy-Item -Path (Join-Path $serverDir "WinServer2019.exe") -Destination "$networkShare\Server\WinServer2019.exe" -Force
+            Write-ColorOutput "  ✓ Server executable deployed (WinServer2019.exe)" "Green"
+        } catch {
+            Copy-Item -Path (Join-Path $serverDir "WinServer2019.exe") -Destination "$networkShare\Server\WinServer2019.new.exe" -Force
+            Write-ColorOutput "  ⚠ Server executable currently running on server; staged as WinServer2019.new.exe" "Yellow"
+        }
         Copy-Item -Path (Join-Path $serverDir "WinServer2019.pdb") -Destination "$networkShare\Server\" -Force -ErrorAction SilentlyContinue
-        Write-ColorOutput "  ✓ Server deployed to network" "Green"
         
         # Copy client files
         Copy-Item -Path (Join-Path $clientDir "*") -Destination "$networkShare\Client\" -Recurse -Force
@@ -124,12 +147,16 @@ if (Test-Path "\\192.168.2.45\Sharing\Other") {
             Write-ColorOutput "  ✓ Client deployed to \\192.168.2.45\Sharing\PCMonitor" "Green"
         }
         
-        # Copy scripts
-        Copy-Item -Path "$scriptsDir\*" -Destination "$networkShare\Scripts\" -Force
-        Write-ColorOutput "  ✓ Scripts deployed to network" "Green"
+        # Copy scripts and blocklists to both network locations
+        Copy-Item -Path (Join-Path $ProjectRoot "Scripts\*") -Destination "$networkShare\Server\Scripts\" -Recurse -Force
+        Copy-Item -Path (Join-Path $ProjectRoot "Scripts\*") -Destination "$networkShare\Scripts\" -Recurse -Force
+        Copy-Item -Path (Join-Path $ProjectRoot "Scripts\*") -Destination "\\192.168.2.45\Sharing\Other\Scripts\" -Recurse -Force
+        Copy-Item -Path (Join-Path $ProjectRoot "Check-Deployment.ps1") -Destination "$networkShare\Server\Check-Deployment.ps1" -Force -ErrorAction SilentlyContinue
+        Copy-Item -Path (Join-Path $ProjectRoot "Check-Deployment.ps1") -Destination "$networkShare\Check-Deployment.ps1" -Force -ErrorAction SilentlyContinue
+        Write-ColorOutput "  ✓ Scripts, blocklists, and verification tools deployed to network" "Green"
     }
     catch {
-        Write-ColorOutput "  ⚠ Network deployment failed: $_" "Yellow"
+        Write-ColorOutput "  ⚠ Network deployment error: $_" "Yellow"
         Write-ColorOutput "  Local package is ready at: $packageDir" "Gray"
     }
 }
