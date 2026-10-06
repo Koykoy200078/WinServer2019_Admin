@@ -28,6 +28,9 @@ namespace WinServer2019
         // Track open screen viewer windows to prevent duplicate windows per client
         private readonly Dictionary<string, ScreenViewerForm> _openScreenViewers = new Dictionary<string, ScreenViewerForm>(StringComparer.OrdinalIgnoreCase);
 
+        // Real-time search filter query
+        private string _currentFilter = "";
+
         [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)]
         private static extern int SendMessage(IntPtr hWnd, int wMsg, IntPtr wParam, ref Point lParam);
 
@@ -132,6 +135,13 @@ namespace WinServer2019
             // Context menu for client actions
             SetupContextMenu();
 
+            // Setup broadcast buttons
+            btnBroadcastMsg.Click += BtnBroadcastMsg_Click;
+            btnBroadcastFreeze.Click += BtnBroadcastFreeze_Click;
+
+            // Setup real-time search / filter
+            txtFilter.TextChanged += TxtFilter_TextChanged;
+
             // Initial counter update
             UpdateOnlineCount();
         }
@@ -220,13 +230,22 @@ namespace WinServer2019
                 return;
             }
 
-            int count = lvClients.Items.Count;
-            lblTotalOnline.Text = $"Total Online: {count} / 35";
-            if (count >= 30)
+            int totalCount = _itemLookup.Count;
+            int visibleCount = lvClients.Items.Count;
+            if (string.IsNullOrWhiteSpace(_currentFilter))
+            {
+                lblTotalOnline.Text = $"Total Online: {totalCount} / 35";
+            }
+            else
+            {
+                lblTotalOnline.Text = $"Filtered: {visibleCount} / {totalCount} Online";
+            }
+
+            if (totalCount >= 30)
             {
                 lblTotalOnline.ForeColor = Color.ForestGreen;
             }
-            else if (count >= 15)
+            else if (totalCount >= 15)
             {
                 lblTotalOnline.ForeColor = Color.DarkOrange;
             }
@@ -235,7 +254,7 @@ namespace WinServer2019
                 lblTotalOnline.ForeColor = Color.Red;
             }
 
-            this.Text = $"Real-Time PC Monitoring — {count}/35 Online";
+            this.Text = $"Real-Time PC Monitoring — {totalCount}/35 Online";
         }
 
         private void BtnStartStop_Click(object sender, EventArgs e)
@@ -337,18 +356,21 @@ namespace WinServer2019
                 item.SubItems.Add("👁 View | 📨 Msg");
                 item.Tag = activity;
 
-                // Temporarily detach sorter during add to avoid per-item sort overhead
-                var currentSorter = lvClients.ListViewItemSorter;
-                lvClients.ListViewItemSorter = null;
-                try
+                _itemLookup[activity.PCName] = item;
+                if (MatchesFilter(activity))
                 {
-                    lvClients.Items.Add(item);
-                    _itemLookup[activity.PCName] = item;
-                }
-                finally
-                {
-                    lvClients.ListViewItemSorter = currentSorter;
-                    lvClients.Sort();
+                    // Temporarily detach sorter during add to avoid per-item sort overhead
+                    var currentSorter = lvClients.ListViewItemSorter;
+                    lvClients.ListViewItemSorter = null;
+                    try
+                    {
+                        lvClients.Items.Add(item);
+                    }
+                    finally
+                    {
+                        lvClients.ListViewItemSorter = currentSorter;
+                        lvClients.Sort();
+                    }
                 }
 
                 UpdateOnlineCount();
@@ -380,6 +402,22 @@ namespace WinServer2019
             item.SubItems[6].Text = activity.LastUpdate.ToString("HH:mm:ss");
             item.SubItems[7].Text = "👁 View | 📨 Msg";
             item.Tag = activity;
+
+            // Manage visibility based on filter
+            if (MatchesFilter(activity))
+            {
+                if (!lvClients.Items.Contains(item))
+                {
+                    lvClients.Items.Add(item);
+                }
+            }
+            else
+            {
+                if (lvClients.Items.Contains(item))
+                {
+                    lvClients.Items.Remove(item);
+                }
+            }
 
             // Highlight based on client health / time since last update
             var timeSinceUpdate = (DateTime.Now - activity.LastUpdate).TotalSeconds;
@@ -708,6 +746,147 @@ namespace WinServer2019
             refreshTimer?.Dispose();
             monitoringServer?.Stop();
             monitoringServer?.Dispose();
+        }
+
+        private bool MatchesFilter(ClientActivity activity)
+        {
+            if (string.IsNullOrWhiteSpace(_currentFilter)) return true;
+            if (activity == null) return false;
+
+            return (activity.PCName != null && activity.PCName.IndexOf(_currentFilter, StringComparison.OrdinalIgnoreCase) >= 0) ||
+                   (activity.Username != null && activity.Username.IndexOf(_currentFilter, StringComparison.OrdinalIgnoreCase) >= 0) ||
+                   (activity.ActiveWindow != null && activity.ActiveWindow.IndexOf(_currentFilter, StringComparison.OrdinalIgnoreCase) >= 0) ||
+                   (activity.ActiveProcess != null && activity.ActiveProcess.IndexOf(_currentFilter, StringComparison.OrdinalIgnoreCase) >= 0) ||
+                   (activity.IPAddress != null && activity.IPAddress.IndexOf(_currentFilter, StringComparison.OrdinalIgnoreCase) >= 0);
+        }
+
+        private void TxtFilter_TextChanged(object sender, EventArgs e)
+        {
+            _currentFilter = txtFilter.Text.Trim();
+            ApplyFilter();
+            UpdateOnlineCount();
+        }
+
+        private void ApplyFilter()
+        {
+            lvClients.BeginUpdate();
+            try
+            {
+                lvClients.Items.Clear();
+                foreach (var kvp in _itemLookup)
+                {
+                    if (kvp.Value.Tag is ClientActivity act && MatchesFilter(act))
+                    {
+                        lvClients.Items.Add(kvp.Value);
+                    }
+                }
+                lvClients.Sort();
+            }
+            finally
+            {
+                lvClients.EndUpdate();
+            }
+        }
+
+        private void BtnBroadcastMsg_Click(object sender, EventArgs e)
+        {
+            int connected = monitoringServer?.GetConnectedClients().Count ?? 0;
+            if (connected == 0)
+            {
+                MessageBox.Show("No workstations are currently connected.", "Broadcast Message", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            using (Form msgDialog = new Form
+            {
+                Text = $"Broadcast Message to All Workstations ({connected} Online)",
+                Width = 480,
+                Height = 260,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                StartPosition = FormStartPosition.CenterParent,
+                MaximizeBox = false,
+                MinimizeBox = false
+            })
+            {
+                Label lbl = new Label
+                {
+                    Text = $"Enter message to display on ALL {connected} student screens:",
+                    Location = new Point(15, 15),
+                    AutoSize = true
+                };
+
+                TextBox txt = new TextBox
+                {
+                    Location = new Point(15, 40),
+                    Width = 430,
+                    Height = 100,
+                    Multiline = true,
+                    ScrollBars = ScrollBars.Vertical
+                };
+
+                Button btnSend = new Button
+                {
+                    Text = "📢 Broadcast",
+                    Location = new Point(245, 160),
+                    Width = 110,
+                    DialogResult = DialogResult.OK
+                };
+
+                Button btnCancel = new Button
+                {
+                    Text = "Cancel",
+                    Location = new Point(365, 160),
+                    Width = 80,
+                    DialogResult = DialogResult.Cancel
+                };
+
+                msgDialog.Controls.AddRange(new Control[] { lbl, txt, btnSend, btnCancel });
+                msgDialog.AcceptButton = btnSend;
+                msgDialog.CancelButton = btnCancel;
+
+                if (msgDialog.ShowDialog(this) == DialogResult.OK && !string.IsNullOrWhiteSpace(txt.Text))
+                {
+                    string message = txt.Text.Trim();
+                    var command = new ServerCommand
+                    {
+                        CommandType = "message",
+                        MessageText = message,
+                        Duration = 5
+                    };
+                    int sent = monitoringServer.BroadcastCommand(command);
+                    AppendLog($"📢 Broadcast message sent to {sent} workstations: \"{message}\"", Color.Cyan);
+                    MessageBox.Show($"Message successfully broadcasted to {sent} workstations.", "Broadcast Sent", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+        }
+
+        private void BtnBroadcastFreeze_Click(object sender, EventArgs e)
+        {
+            int connected = monitoringServer?.GetConnectedClients().Count ?? 0;
+            if (connected == 0)
+            {
+                MessageBox.Show("No workstations are currently connected.", "Broadcast Freeze", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            var result = MessageBox.Show(
+                $"⚠ WARNING: This will FREEZE all {connected} connected workstations for 3 seconds with an attention warning.\n\nAre you sure you want to proceed?",
+                "Confirm Lab-wide Screen Freeze",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning);
+
+            if (result == DialogResult.Yes)
+            {
+                var command = new ServerCommand
+                {
+                    CommandType = "freeze",
+                    MessageText = "⚠ ATTENTION: All lab workstations have been temporarily frozen by the instructor.",
+                    Duration = 3
+                };
+                int sent = monitoringServer.BroadcastCommand(command);
+                AppendLog($"🔒 Lab-wide screen freeze broadcasted to {sent} workstations", Color.OrangeRed);
+                MessageBox.Show($"Freeze command successfully sent to {sent} workstations.", "Freeze Sent", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
         }
     }
 }

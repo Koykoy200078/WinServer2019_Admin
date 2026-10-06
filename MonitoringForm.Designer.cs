@@ -20,6 +20,10 @@ namespace WinServer2019
         private System.Windows.Forms.Panel panelDetails;
         private System.Windows.Forms.RichTextBox rtbClientDetails;
         private System.Windows.Forms.CheckBox chkVerboseLog;
+        private System.Windows.Forms.Button btnBroadcastMsg;
+        private System.Windows.Forms.Button btnBroadcastFreeze;
+        private System.Windows.Forms.Label lblFilter;
+        private System.Windows.Forms.TextBox txtFilter;
 
         /// <summary>
         /// Clean up any resources being used.
@@ -58,6 +62,10 @@ namespace WinServer2019
             this.btnExportLog = new System.Windows.Forms.Button();
             this.btnClearLog = new System.Windows.Forms.Button();
             this.chkVerboseLog = new System.Windows.Forms.CheckBox();
+            this.btnBroadcastMsg = new System.Windows.Forms.Button();
+            this.btnBroadcastFreeze = new System.Windows.Forms.Button();
+            this.lblFilter = new System.Windows.Forms.Label();
+            this.txtFilter = new System.Windows.Forms.TextBox();
             this.lblClients = new System.Windows.Forms.Label();
             this.lblTotalOnline = new System.Windows.Forms.Label();
             this.lvClients = new System.Windows.Forms.ListView();
@@ -135,9 +143,9 @@ namespace WinServer2019
             // lblClients
             // 
             this.lblClients.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
-            this.lblClients.Location = new System.Drawing.Point(20, 60);
+            this.lblClients.Location = new System.Drawing.Point(20, 59);
             this.lblClients.Name = "lblClients";
-            this.lblClients.Size = new System.Drawing.Size(165, 25);
+            this.lblClients.Size = new System.Drawing.Size(130, 25);
             this.lblClients.TabIndex = 2;
             this.lblClients.Text = "Connected Clients:";
             // 
@@ -145,11 +153,54 @@ namespace WinServer2019
             // 
             this.lblTotalOnline.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.lblTotalOnline.ForeColor = System.Drawing.Color.Red;
-            this.lblTotalOnline.Location = new System.Drawing.Point(190, 60);
+            this.lblTotalOnline.Location = new System.Drawing.Point(155, 59);
             this.lblTotalOnline.Name = "lblTotalOnline";
-            this.lblTotalOnline.Size = new System.Drawing.Size(260, 25);
+            this.lblTotalOnline.Size = new System.Drawing.Size(165, 25);
             this.lblTotalOnline.TabIndex = 10;
             this.lblTotalOnline.Text = "Total Online: 0 / 35";
+            // 
+            // btnBroadcastMsg
+            // 
+            this.btnBroadcastMsg.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(122)))), ((int)(((byte)(204)))));
+            this.btnBroadcastMsg.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnBroadcastMsg.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.btnBroadcastMsg.ForeColor = System.Drawing.Color.White;
+            this.btnBroadcastMsg.Location = new System.Drawing.Point(330, 54);
+            this.btnBroadcastMsg.Name = "btnBroadcastMsg";
+            this.btnBroadcastMsg.Size = new System.Drawing.Size(130, 30);
+            this.btnBroadcastMsg.TabIndex = 12;
+            this.btnBroadcastMsg.Text = "📢 Message All";
+            this.btnBroadcastMsg.UseVisualStyleBackColor = false;
+            // 
+            // btnBroadcastFreeze
+            // 
+            this.btnBroadcastFreeze.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(53)))), ((int)(((byte)(69)))));
+            this.btnBroadcastFreeze.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnBroadcastFreeze.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.btnBroadcastFreeze.ForeColor = System.Drawing.Color.White;
+            this.btnBroadcastFreeze.Location = new System.Drawing.Point(468, 54);
+            this.btnBroadcastFreeze.Name = "btnBroadcastFreeze";
+            this.btnBroadcastFreeze.Size = new System.Drawing.Size(110, 30);
+            this.btnBroadcastFreeze.TabIndex = 13;
+            this.btnBroadcastFreeze.Text = "🔒 Freeze All";
+            this.btnBroadcastFreeze.UseVisualStyleBackColor = false;
+            // 
+            // lblFilter
+            // 
+            this.lblFilter.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblFilter.Location = new System.Drawing.Point(595, 60);
+            this.lblFilter.Name = "lblFilter";
+            this.lblFilter.Size = new System.Drawing.Size(45, 20);
+            this.lblFilter.TabIndex = 14;
+            this.lblFilter.Text = "Filter:";
+            // 
+            // txtFilter
+            // 
+            this.txtFilter.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.txtFilter.Location = new System.Drawing.Point(645, 58);
+            this.txtFilter.Name = "txtFilter";
+            this.txtFilter.Size = new System.Drawing.Size(200, 23);
+            this.txtFilter.TabIndex = 15;
             // 
             // lvClients
             // 
@@ -233,6 +284,10 @@ namespace WinServer2019
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1904, 1041);
+            this.Controls.Add(this.btnBroadcastMsg);
+            this.Controls.Add(this.btnBroadcastFreeze);
+            this.Controls.Add(this.lblFilter);
+            this.Controls.Add(this.txtFilter);
             this.Controls.Add(this.lblTotalOnline);
             this.Controls.Add(this.chkVerboseLog);
             this.Controls.Add(this.btnClearLog);

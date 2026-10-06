@@ -19,6 +19,9 @@ namespace WinServer2019
         private System.Windows.Forms.ComboBox cmbQuality;
         private System.Windows.Forms.Button btnToggleFit;
         private System.Windows.Forms.Button btnToggleFullScreen;
+        private System.Windows.Forms.Button btnSaveSnapshot;
+        private System.Windows.Forms.Button btnSendMessage;
+        private System.Windows.Forms.Button btnFreeze;
 
         /// <summary>
         /// Clean up any resources being used.
@@ -52,6 +55,9 @@ namespace WinServer2019
             this.lblQuality = new System.Windows.Forms.Label();
             this.btnToggleFit = new System.Windows.Forms.Button();
             this.btnToggleFullScreen = new System.Windows.Forms.Button();
+            this.btnSaveSnapshot = new System.Windows.Forms.Button();
+            this.btnSendMessage = new System.Windows.Forms.Button();
+            this.btnFreeze = new System.Windows.Forms.Button();
             this.lblPCName = new System.Windows.Forms.Label();
             this.statusPanel = new System.Windows.Forms.Panel();
             this.lblStatus = new System.Windows.Forms.Label();
@@ -71,6 +77,9 @@ namespace WinServer2019
             this.controlPanel.Controls.Add(this.lblQuality);
             this.controlPanel.Controls.Add(this.btnToggleFit);
             this.controlPanel.Controls.Add(this.btnToggleFullScreen);
+            this.controlPanel.Controls.Add(this.btnSaveSnapshot);
+            this.controlPanel.Controls.Add(this.btnSendMessage);
+            this.controlPanel.Controls.Add(this.btnFreeze);
             this.controlPanel.Controls.Add(this.lblPCName);
             this.controlPanel.Dock = System.Windows.Forms.DockStyle.Top;
             this.controlPanel.Location = new System.Drawing.Point(0, 0);
@@ -168,13 +177,58 @@ namespace WinServer2019
             this.btnToggleFullScreen.Text = "⛶ Full Screen";
             this.btnToggleFullScreen.UseVisualStyleBackColor = false;
             // 
+            // btnSaveSnapshot
+            // 
+            this.btnSaveSnapshot.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnSaveSnapshot.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(167)))), ((int)(((byte)(69)))));
+            this.btnSaveSnapshot.FlatAppearance.BorderSize = 0;
+            this.btnSaveSnapshot.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnSaveSnapshot.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.btnSaveSnapshot.ForeColor = System.Drawing.Color.White;
+            this.btnSaveSnapshot.Location = new System.Drawing.Point(165, 10);
+            this.btnSaveSnapshot.Name = "btnSaveSnapshot";
+            this.btnSaveSnapshot.Size = new System.Drawing.Size(85, 30);
+            this.btnSaveSnapshot.TabIndex = 8;
+            this.btnSaveSnapshot.Text = "📸 Save";
+            this.btnSaveSnapshot.UseVisualStyleBackColor = false;
+            // 
+            // btnSendMessage
+            // 
+            this.btnSendMessage.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnSendMessage.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(122)))), ((int)(((byte)(204)))));
+            this.btnSendMessage.FlatAppearance.BorderSize = 0;
+            this.btnSendMessage.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnSendMessage.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.btnSendMessage.ForeColor = System.Drawing.Color.White;
+            this.btnSendMessage.Location = new System.Drawing.Point(255, 10);
+            this.btnSendMessage.Name = "btnSendMessage";
+            this.btnSendMessage.Size = new System.Drawing.Size(90, 30);
+            this.btnSendMessage.TabIndex = 9;
+            this.btnSendMessage.Text = "📨 Msg";
+            this.btnSendMessage.UseVisualStyleBackColor = false;
+            // 
+            // btnFreeze
+            // 
+            this.btnFreeze.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnFreeze.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(53)))), ((int)(((byte)(69)))));
+            this.btnFreeze.FlatAppearance.BorderSize = 0;
+            this.btnFreeze.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnFreeze.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.btnFreeze.ForeColor = System.Drawing.Color.White;
+            this.btnFreeze.Location = new System.Drawing.Point(350, 10);
+            this.btnFreeze.Name = "btnFreeze";
+            this.btnFreeze.Size = new System.Drawing.Size(85, 30);
+            this.btnFreeze.TabIndex = 10;
+            this.btnFreeze.Text = "⚠ Freeze";
+            this.btnFreeze.UseVisualStyleBackColor = false;
+            // 
             // lblPCName
             // 
             this.lblPCName.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.lblPCName.ForeColor = System.Drawing.Color.White;
             this.lblPCName.Location = new System.Drawing.Point(15, 14);
             this.lblPCName.Name = "lblPCName";
-            this.lblPCName.Size = new System.Drawing.Size(400, 22);
+            this.lblPCName.Size = new System.Drawing.Size(145, 22);
             this.lblPCName.TabIndex = 0;
             this.lblPCName.Text = "Viewing: PC-1";
             // 

@@ -36,6 +36,30 @@ namespace WinServer2019
         public string ConnectionId { get; set; }
     }
 
+    internal static class BufferPool
+    {
+        private static readonly ConcurrentBag<byte[]> _pool = new ConcurrentBag<byte[]>();
+        private const int PoolItemSize = 512 * 1024; // 512 KB
+        private const int MaxPoolCount = 64;
+
+        public static byte[] Rent(int minSize)
+        {
+            if (minSize <= PoolItemSize && _pool.TryTake(out var buf))
+            {
+                return buf;
+            }
+            return new byte[minSize];
+        }
+
+        public static void Return(byte[] buffer)
+        {
+            if (buffer != null && buffer.Length == PoolItemSize && _pool.Count < MaxPoolCount)
+            {
+                _pool.Add(buffer);
+            }
+        }
+    }
+
     public class MonitoringServer : IDisposable
     {
         private TcpListener listener;
@@ -188,17 +212,26 @@ namespace WinServer2019
                         break;
                     }
 
-                    // Read the full message with 30s timeout
-                    byte[] buffer = new byte[messageLength];
-                    int totalBytesRead = 0;
-                    while (totalBytesRead < messageLength)
+                    // Read the full message with 30s timeout using memory-efficient buffer pool
+                    byte[] buffer = BufferPool.Rent(messageLength);
+                    string jsonData = null;
+                    try
                     {
-                        int bytesRead = await ReadWithTimeoutAsync(stream, buffer, totalBytesRead, messageLength - totalBytesRead, 30000, token);
-                        if (bytesRead == 0) return; // Connection closed
-                        totalBytesRead += bytesRead;
+                        int totalBytesRead = 0;
+                        while (totalBytesRead < messageLength)
+                        {
+                            int bytesRead = await ReadWithTimeoutAsync(stream, buffer, totalBytesRead, messageLength - totalBytesRead, 30000, token);
+                            if (bytesRead == 0) return; // Connection closed
+                            totalBytesRead += bytesRead;
+                        }
+
+                        jsonData = Encoding.UTF8.GetString(buffer, 0, messageLength);
+                    }
+                    finally
+                    {
+                        BufferPool.Return(buffer);
                     }
 
-                    string jsonData = Encoding.UTF8.GetString(buffer, 0, messageLength);
                     var activity = JsonConvert.DeserializeObject<ClientActivity>(jsonData);
 
                     if (activity != null)
@@ -310,6 +343,14 @@ namespace WinServer2019
                         {
                             if (clientActivities.TryRemove(inactive.Key, out _))
                             {
+                                // Remove obsolete command queues for inactive clients
+                                commandQueues.TryRemove(inactive.Key, out _);
+                                string shortKey = inactive.Key.Split('.')[0];
+                                foreach (var k in commandQueues.Keys.Where(x => string.Equals(x.Split('.')[0], shortKey, StringComparison.OrdinalIgnoreCase)).ToList())
+                                {
+                                    commandQueues.TryRemove(k, out _);
+                                }
+
                                 try
                                 {
                                     OnClientDisconnected?.Invoke(inactive.Key);
@@ -358,6 +399,25 @@ namespace WinServer2019
             var queue = commandQueues.GetOrAdd(targetKey, _ => new ConcurrentQueue<ServerCommand>());
             queue.Enqueue(command);
             SafeLog($"Command queued for {targetKey}: {command.CommandType}");
+        }
+
+        public int BroadcastCommand(ServerCommand command)
+        {
+            if (command == null) return 0;
+            int count = 0;
+            var activeKeys = clientActivities.Keys.ToList();
+            foreach (var pc in activeKeys)
+            {
+                SendCommand(pc, new ServerCommand
+                {
+                    CommandType = command.CommandType,
+                    MessageText = command.MessageText,
+                    Duration = command.Duration
+                });
+                count++;
+            }
+            SafeLog($"Broadcast {command.CommandType} queued for {count} connected workstations");
+            return count;
         }
 
         public ClientActivity GetClientActivity(string pcName)

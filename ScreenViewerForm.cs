@@ -14,6 +14,8 @@ namespace WinServer2019
         private bool _isFullScreen = false;
         private FormBorderStyle _previousBorderStyle;
         private FormWindowState _previousWindowState;
+        private DateTime _lastFrameTime = DateTime.MinValue;
+        private double _currentFps = 0.0;
 
         public ScreenViewerForm(string pcName, MonitoringServer server)
         {
@@ -74,6 +76,15 @@ namespace WinServer2019
                     }
                 }
             };
+
+            // Setup snapshot save
+            btnSaveSnapshot.Click += (s, e) => SaveSnapshot();
+
+            // Setup direct messaging
+            btnSendMessage.Click += (s, e) => SendDirectMessage();
+
+            // Setup freeze action
+            btnFreeze.Click += (s, e) => FreezeClient();
 
             // Setup close button event
             btnClose.Click += (s, e) => this.Close();
@@ -223,13 +234,26 @@ namespace WinServer2019
                 oldImage?.Dispose();
                 oldStream?.Dispose();
                 
-                // Calculate data size for display
+                // Calculate data size and FPS for display
                 double sizeKB = activity.ScreenshotData.Length / 1024.0;
                 string resolution = $"{image.Width}x{image.Height}";
-                
+
+                DateTime now = DateTime.Now;
+                if (_lastFrameTime != DateTime.MinValue)
+                {
+                    double elapsed = (now - _lastFrameTime).TotalSeconds;
+                    if (elapsed > 0.05)
+                    {
+                        _currentFps = Math.Round(1.0 / elapsed, 1);
+                    }
+                }
+                _lastFrameTime = now;
+
+                string fpsDisplay = _currentFps > 0 ? $"{_currentFps:F1} FPS" : "1 FPS";
+
                 if (!this.IsDisposed)
                 {
-                    lblStatus.Text = $"Last Update: {activity.LastUpdate:HH:mm:ss} | {resolution} | {sizeKB:F1} KB | {activity.ActiveWindow}";
+                    lblStatus.Text = $"Last: {activity.LastUpdate:HH:mm:ss} | {resolution} | {sizeKB:F1} KB | {fpsDisplay} | {activity.ActiveWindow}";
                     lblStatus.ForeColor = Color.LightGreen;
                 }
             }
@@ -306,6 +330,127 @@ namespace WinServer2019
 
             _currentImageStream?.Dispose();
             _currentImageStream = null;
+        }
+
+        private void SaveSnapshot()
+        {
+            if (pictureBox.Image == null)
+            {
+                MessageBox.Show("No screen image is currently available to save.", "Save Snapshot", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            try
+            {
+                string defaultFileName = $"{pcName}_{DateTime.Now:yyyyMMdd_HHmmss}.png";
+                using (var sfd = new SaveFileDialog())
+                {
+                    sfd.Title = $"Save Screenshot - {pcName}";
+                    sfd.Filter = "PNG Image (*.png)|*.png|JPEG Image (*.jpg)|*.jpg";
+                    sfd.FileName = defaultFileName;
+                    if (sfd.ShowDialog(this) == DialogResult.OK)
+                    {
+                        var format = sfd.FileName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
+                            ? System.Drawing.Imaging.ImageFormat.Jpeg
+                            : System.Drawing.Imaging.ImageFormat.Png;
+
+                        using (var clone = new Bitmap(pictureBox.Image))
+                        {
+                            clone.Save(sfd.FileName, format);
+                        }
+                        lblStatus.Text = $"Snapshot saved successfully: {Path.GetFileName(sfd.FileName)}";
+                        lblStatus.ForeColor = Color.LightGreen;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to save snapshot: {ex.Message}", "Save Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void SendDirectMessage()
+        {
+            using (Form msgDialog = new Form
+            {
+                Text = $"Send Message to {pcName}",
+                Width = 420,
+                Height = 230,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                StartPosition = FormStartPosition.CenterParent,
+                MaximizeBox = false,
+                MinimizeBox = false
+            })
+            {
+                Label lbl = new Label
+                {
+                    Text = $"Message to display on {pcName}'s screen:",
+                    Location = new Point(15, 15),
+                    AutoSize = true
+                };
+
+                TextBox txt = new TextBox
+                {
+                    Location = new Point(15, 40),
+                    Width = 370,
+                    Height = 80,
+                    Multiline = true,
+                    ScrollBars = ScrollBars.Vertical
+                };
+
+                Button btnOk = new Button
+                {
+                    Text = "Send",
+                    Location = new Point(225, 140),
+                    Width = 75,
+                    DialogResult = DialogResult.OK
+                };
+
+                Button btnCancel = new Button
+                {
+                    Text = "Cancel",
+                    Location = new Point(310, 140),
+                    Width = 75,
+                    DialogResult = DialogResult.Cancel
+                };
+
+                msgDialog.Controls.AddRange(new Control[] { lbl, txt, btnOk, btnCancel });
+                msgDialog.AcceptButton = btnOk;
+                msgDialog.CancelButton = btnCancel;
+
+                if (msgDialog.ShowDialog(this) == DialogResult.OK && !string.IsNullOrWhiteSpace(txt.Text))
+                {
+                    server?.SendCommand(pcName, new ServerCommand
+                    {
+                        CommandType = "message",
+                        MessageText = txt.Text.Trim(),
+                        Duration = 5
+                    });
+                    lblStatus.Text = $"Message sent to {pcName}";
+                    lblStatus.ForeColor = Color.Cyan;
+                }
+            }
+        }
+
+        private void FreezeClient()
+        {
+            var res = MessageBox.Show(
+                $"Freeze {pcName}'s screen for 3 seconds with administrator attention warning?\n\nThis will lock input temporarily.",
+                $"Freeze {pcName}",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning);
+
+            if (res == DialogResult.Yes)
+            {
+                server?.SendCommand(pcName, new ServerCommand
+                {
+                    CommandType = "freeze",
+                    MessageText = "⚠ ATTENTION: This screen has been frozen by the administrator for 3 seconds.",
+                    Duration = 3
+                });
+                lblStatus.Text = $"Freeze command sent to {pcName}";
+                lblStatus.ForeColor = Color.OrangeRed;
+            }
         }
     }
 }
